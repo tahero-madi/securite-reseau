@@ -21,6 +21,12 @@ for p in $OUTILS; do
 done
 # Debian/Kali/Ubuntu installent la commande sous le nom « testssl » : on garde aussi « testssl.sh »
 command -v testssl.sh >/dev/null || { command -v testssl >/dev/null && ln -sf "$(command -v testssl)" /usr/local/bin/testssl.sh; } || true
+# À défaut de paquet, version officielle depuis GitHub
+if ! command -v testssl.sh >/dev/null; then
+  rm -rf /opt/testssl.sh
+  git clone -q --depth 1 https://github.com/testssl/testssl.sh.git /opt/testssl.sh \
+    && ln -sf /opt/testssl.sh/testssl.sh /usr/local/bin/testssl.sh || echo "[!!] testssl.sh non installé"
+fi
 command -v ftp >/dev/null || { [ -x /usr/bin/tnftp ] && ln -sf /usr/bin/tnftp /usr/local/bin/ftp; }
 # Noms des objets SNMP (system, ifTable…) : activer les MIB installées par snmp-mibs-downloader
 [ -f /etc/snmp/snmp.conf ] && sed -i 's/^mibs *:/#mibs :/' /etc/snmp/snmp.conf
