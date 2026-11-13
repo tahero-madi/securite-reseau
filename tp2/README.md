@@ -28,6 +28,7 @@ sudo docker compose -p greenbone-community-edition -f /opt/greenbone/compose.yam
 1. Dans Firefox, ouvrez **`http://127.0.0.1`**. Connectez-vous avec le compte `admin` et le mot de passe indiqué dans `~/TP/identifiants-lab.txt`.
 2. **Changez le mot de passe** : menu de l'utilisateur en haut à droite → *My Settings* → icône crayon en haut de la page → *Change Password*. Un compte ne peut pas modifier son propre mot de passe depuis *Administration → Users*.
 3. Vérifiez le flux de vulnérabilités : *Administration → Feed Status*. Toutes les lignes doivent indiquer **Current**.
+4. Facultatif, mais pratique : dans *My Settings*, réglez *Timezone* sur `Europe/Paris`. Sinon, toutes les dates de la console sont en heure UTC (une heure de moins en hiver).
 
 ## Étape 3 — Créer la cible
 
@@ -67,7 +68,7 @@ La tâche apparaît dans la liste avec l'état **New** : créer une tâche ne la
 | **Done** | Scan terminé : le rapport est complet |
 | Stopped / Interrupted | Scan arrêté avant la fin : relancez-le avec ▶ |
 
-La colonne **Reports** compte les rapports de la tâche, et **Last Report** donne la date du dernier. Comptez **10 à 20 minutes** pour ce scan. Pendant ce temps, *Scans → Results* montre les résultats au fur et à mesure.
+La colonne **Reports** compte les rapports de la tâche, et **Last Report** donne la date du dernier. Comptez **15 à 25 minutes** pour ce scan, davantage si plusieurs scans tournent en même temps. Le pourcentage peut rester longtemps vers 95 % : les derniers tests sont les plus lents ; attendez **Done** avant d'exploiter le rapport. Pendant ce temps, *Scans → Results* montre les résultats au fur et à mesure.
 
 ## Étape 5 — Lire le rapport et l'exporter en CSV
 
@@ -164,7 +165,7 @@ ssh -i ~/gvm-scan gvm-scan@10.1.30.10 'dpkg -l | wc -l'
 **Pourquoi.** Le scan authentifié détecte les **correctifs manquants** (paquets non mis à jour), invisibles depuis le réseau, avec une QoD élevée et moins de faux positifs.
 
 1. *Scans → Tasks* → **New Task** : *Name* `Scan-auth`, *Scan Targets* `WEB-auth`, *Scan Config* **Full and fast**, *Save*.
-2. **Cliquez sur ▶ (*Start*)** sur la ligne de `Scan-auth`, puis suivez la colonne *Status* jusqu'à **Done** (comptez 10 à 15 minutes).
+2. **Cliquez sur ▶ (*Start*)** sur la ligne de `Scan-auth`, puis suivez la colonne *Status* jusqu'à **Done** (comptez 15 à 25 minutes).
 3. Ouvrez le rapport, triez par *Severity*, puis exportez-le en CSV comme à l'étape 5, sous le nom `~/livrables/tp2-scan-auth.csv` :
 
 ```bash
