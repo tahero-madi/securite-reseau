@@ -40,7 +40,7 @@ main() {
   tcp 10.1.30.10 3000 && ok "web 10.1.30.10:3000 (Juice Shop)" || avert "Juice Shop (3000) absent : facultatif"
   curl -s -m 5 http://10.1.30.10/dvwa/login.php | grep -qi dvwa && ok "DVWA" || ko "DVWA ne répond pas"
   if command -v snmpget >/dev/null; then
-    snmpget -v2c -c public -t 2 -r 1 10.1.30.10 SNMPv2-MIB::sysName.0 >/dev/null 2>&1 \
+    snmpget -v2c -c public -t 2 -r 1 10.1.30.10 1.3.6.1.2.1.1.5.0 >/dev/null 2>&1 \
       && ok "SNMP v2c « public » (cible héritée)" || ko "SNMP de web ne répond pas"
   fi
 
@@ -57,8 +57,11 @@ main() {
   for o in nmap wireshark arpwatch arpspoof radtest testssl.sh ssh-audit snmpwalk ftp; do
     command -v $o >/dev/null && ok "$o" || avert "$o absent"
   done
+  # Les fichiers sont dans le dossier de l'utilisateur, même si le script est lancé avec sudo
+  HU=$HOME
+  if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then HU=$(getent passwd "$SUDO_USER" | cut -d: -f6); fi
   for f in identifiants-lab.txt tp1-arp-demo.pcap tp1-ftp-clear.pcap tp7-incident.pcap mandat-audit-TP8.pdf; do
-    [ -s ~/TP/$f ] && ok "~/TP/$f" || ko "~/TP/$f manquant"
+    [ -s "$HU/TP/$f" ] && ok "$HU/TP/$f" || ko "$HU/TP/$f manquant"
   done
 
   echo

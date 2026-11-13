@@ -13,13 +13,17 @@ H=$(getent passwd "$U" | cut -d: -f6)
 echo "== Outils du poste (quelques minutes)"
 echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
 OUTILS="wireshark tshark nmap arpwatch dsniff hping3 ldap-utils freeradius-utils eapoltest snmp \
-  tnftp telnet testssl.sh ssh-audit python3-scapy git openssl whois sshpass"
+  tnftp telnet testssl.sh ssh-audit python3-scapy git openssl whois sshpass snmp-mibs-downloader"
 MANQUANTS=""
 for p in $OUTILS; do
   dpkg -s "$p" >/dev/null 2>&1 && continue
   apt-get install -y -q "$p" >/dev/null 2>&1 || MANQUANTS="$MANQUANTS $p"
 done
+# Debian/Kali/Ubuntu installent la commande sous le nom « testssl » : on garde aussi « testssl.sh »
+command -v testssl.sh >/dev/null || { command -v testssl >/dev/null && ln -sf "$(command -v testssl)" /usr/local/bin/testssl.sh; } || true
 command -v ftp >/dev/null || { [ -x /usr/bin/tnftp ] && ln -sf /usr/bin/tnftp /usr/local/bin/ftp; }
+# Noms des objets SNMP (system, ifTable…) : activer les MIB installées par snmp-mibs-downloader
+[ -f /etc/snmp/snmp.conf ] && sed -i 's/^mibs *:/#mibs :/' /etc/snmp/snmp.conf
 dpkg-reconfigure -f noninteractive wireshark-common >/dev/null 2>&1 || true
 getent group wireshark >/dev/null && usermod -aG wireshark "$U"
 [ -z "$MANQUANTS" ] && echo "[OK] outils du poste installés" || echo "[!!] paquets non installés :$MANQUANTS"

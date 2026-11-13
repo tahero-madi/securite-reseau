@@ -7,6 +7,8 @@ trap 'echo "[KO] ext, ligne $LINENO : $BASH_COMMAND"' ERR
 export DEBIAN_FRONTEND=noninteractive
 echo "== ext"
 apt-get install -y -q nmap testssl.sh ssh-audit dsniff hping3 snmp ldap-utils
+# Debian/Kali/Ubuntu installent la commande sous le nom « testssl » : on garde aussi « testssl.sh »
+command -v testssl.sh >/dev/null || { command -v testssl >/dev/null && ln -sf "$(command -v testssl)" /usr/local/bin/testssl.sh; } || true
 # Pas de redirections ICMP pendant la démonstration d'homme du milieu du TP 1
 IF=$(ip -o -4 addr show | awk -v ip="$IP_EXT/" 'index($4, ip) == 1 {print $2; exit}')
 cat > /etc/sysctl.d/60-lab.conf <<EOF
