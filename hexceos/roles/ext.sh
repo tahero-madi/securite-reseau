@@ -6,7 +6,7 @@ trap 'echo "[KO] ext, ligne $LINENO : $BASH_COMMAND"' ERR
 . ./lab.conf
 export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l  # pas de redémarrage automatique de services
 echo "== ext"
-apt-get install -y -q nmap ssh-audit dsniff hping3 snmp ldap-utils git
+apt-get install -y -q nmap ssh-audit dsniff hping3 snmp ldap-utils git iputils-arping
 apt-get install -y -q testssl.sh || true
 # Debian/Kali/Ubuntu installent la commande sous le nom « testssl » : on garde aussi « testssl.sh »
 command -v testssl.sh >/dev/null || { command -v testssl >/dev/null && ln -sf "$(command -v testssl)" /usr/local/bin/testssl.sh; } || true

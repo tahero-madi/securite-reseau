@@ -76,5 +76,5 @@ Redémarrez les 6 VM, relancez `verif.sh`, puis prenez un instantané de chaque 
 ## Points de vigilance
 
 - **Ne pas modifier les routes des VM** pendant les TP : le trafic contournerait pfSense.
-- **Usurpation ARP du TP1** : elle se joue sur le WAN, entre ext et cloud-gw. Avant de la faire faire aux apprenants, vérifiez que le WAN de chaque environnement est bien isolé : depuis ext, `sudo arping -c3 10.10.0.20` ne doit obtenir qu'une seule adresse MAC.
+- **Usurpation ARP du TP1** : elle se joue sur le WAN, entre ext et cloud-gw. Avant de la faire faire aux apprenants, vérifiez que le WAN de chaque environnement est bien isolé : depuis ext, `sudo arping -c3 -I ens18 10.10.0.20` (paquet `iputils-arping`) ne doit obtenir qu'une seule adresse MAC.
 - **IPsec du TP6** : vérifiez une fois que l'ESP (protocole 50) passe entre pfSense et cloud-gw sur le WAN de la plateforme.

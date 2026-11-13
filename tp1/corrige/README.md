@@ -21,7 +21,7 @@ Points à faire émerger :
 - Le commutateur virtuel de la plateforme, comme un commutateur sans DAI, laisse passer ces réponses.
 - Le flux FTP en clair illustre que la confidentialité ne dépend pas de la « zone » mais du chiffrement du protocole. Remplacement par SFTP ou FTPS.
 
-**Pour le formateur.** Avant le TP, vérifiez dans un environnement que la démonstration fonctionne (le commutateur de la plateforme ne filtre pas l'usurpation) et que le WAN de chaque apprenant est isolé : depuis ext, `sudo arping -c3 10.10.0.20` ne doit obtenir qu'une MAC. Si le WAN était partagé entre apprenants, faites la démonstration vous-même, sur votre environnement, en projetant l'écran. Repli : `~/TP/tp1-arp-demo.pcap` (même scénario : cloud-gw 10.10.0.30, ext 10.10.0.40 avec la MAC `bc:24:11:7a:00:40`, pfSense 10.10.0.20 avec la MAC `bc:24:11:cf:ce:66`) et `~/TP/tp1-ftp-clear.pcap`.
+**Pour le formateur.** Avant le TP, vérifiez dans un environnement que la démonstration fonctionne (le commutateur de la plateforme ne filtre pas l'usurpation) et que le WAN de chaque apprenant est isolé : depuis ext, `sudo arping -c3 -I ens18 10.10.0.20` (paquet `iputils-arping`) ne doit obtenir qu'une MAC. Si le WAN était partagé entre apprenants, faites la démonstration vous-même, sur votre environnement, en projetant l'écran. Repli : `~/TP/tp1-arp-demo.pcap` (même scénario : cloud-gw 10.10.0.30, ext 10.10.0.40 avec la MAC `bc:24:11:7a:00:40`, pfSense 10.10.0.20 avec la MAC `bc:24:11:cf:ce:66`) et `~/TP/tp1-ftp-clear.pcap`.
 
 **Partie C — matrice type attendue (extrait) :**
 
