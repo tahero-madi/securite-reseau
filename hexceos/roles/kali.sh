@@ -108,12 +108,20 @@ echo "== Greenbone : téléchargement des images (10 à 30 minutes selon le déb
 "${GBC[@]}" pull -q
 "${GBC[@]}" up -d
 admin_present() { "${GBC[@]}" exec -T -u gvmd gvmd gvmd --get-users 2>/dev/null | grep -qx admin; }
-echo "== Greenbone : attente du gestionnaire gvmd (jusqu'à 15 minutes)"
-for i in $(seq 1 90); do admin_present && break; sleep 10; done
-if admin_present; then
-  "${GBC[@]}" exec -T -u gvmd gvmd gvmd --user=admin --new-password="$PW_GREENBONE" >/dev/null
-else
-  "${GBC[@]}" exec -T -u gvmd gvmd gvmd --create-user=admin --password="$PW_GREENBONE" >/dev/null || true
+echo "== Greenbone : attente du gestionnaire gvmd (jusqu'à 30 minutes)"
+for i in $(seq 1 180); do admin_present && break; sleep 10; done
+MDP_OK=0
+for i in $(seq 1 10); do
+  if admin_present; then
+    "${GBC[@]}" exec -T -u gvmd gvmd gvmd --user=admin --new-password="$PW_GREENBONE" >/dev/null 2>&1 && { MDP_OK=1; break; }
+  else
+    "${GBC[@]}" exec -T -u gvmd gvmd gvmd --create-user=admin --password="$PW_GREENBONE" >/dev/null 2>&1 && { MDP_OK=1; break; }
+  fi
+  sleep 30
+done
+if [ $MDP_OK -eq 0 ]; then
+  echo "[!!] mot de passe admin de Greenbone non positionné. Plus tard, quand gvmd répond :"
+  echo "[!!]   sudo docker compose -p greenbone-community-edition -f $GB/compose.yaml exec -u gvmd gvmd gvmd --user=admin --new-password='$PW_GREENBONE'"
 fi
 GSA_URL=http://127.0.0.1:9392
 for i in $(seq 1 30); do
