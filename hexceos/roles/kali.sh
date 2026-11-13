@@ -173,6 +173,9 @@ Utilisateurs LDAP       alice / $PW_ALICE (admins) · bob / $PW_BOB · carol / $
 FTP en clair (web)      ftpdemo / $PW_FTPDEMO
 DVWA                    http://$IP_WEB/dvwa/       admin / password
 EOF
+for f in cartographie.md matrice-risques.md; do
+  [ -e "$H/livrables/$f" ] || curl -fsSL -o "$H/livrables/$f" "$LAB_BASE/tp1/modeles/$f" || true
+done
 chown -R "$U:$U" "$T" "$H/pki" "$H/livrables"
 echo "[OK] fichiers de TP dans $T (captures, mandat, identifiants)"
 

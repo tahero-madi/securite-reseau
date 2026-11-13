@@ -2,7 +2,7 @@
 
 **Jour 1, 10:25 · 1 h 35.** Objectifs : prendre en main le laboratoire ; cartographier son propre réseau de façon autorisée ; observer concrètement la fragilité de la couche 2 ; produire une première matrice de risques.
 
-**Prérequis** : module 1. **Périmètre autorisé** : uniquement les machines de votre laboratoire (réseaux 10.1.10.0/24, 10.1.20.0/24, 10.1.30.0/24, et sur le WAN 10.10.0.20, 10.10.0.30, 10.10.0.40). **Livrable** : un fichier `cartographie.md` (inventaire + schéma de flux observés) et une `matrice-risques` (tableau de 5 risques cotés), dans `~/livrables`.
+**Prérequis** : module 1. **Périmètre autorisé** : uniquement les machines de votre laboratoire (réseaux 10.1.10.0/24, 10.1.20.0/24, 10.1.30.0/24, et sur le WAN 10.10.0.20, 10.10.0.30, 10.10.0.40). **Livrable** : `cartographie.md` (inventaire, services, flux observés, schéma) et `matrice-risques.md` (5 risques cotés), à remplir à partir des modèles fournis, dans `~/livrables`.
 
 **Déroulé** : étapes 1 à 4 (cartographie) 30 min · étapes 5 et 6 (couche 2) 35 min · étape 7 (analyse de risques) 30 min.
 
@@ -23,6 +23,23 @@ ip route
 
 - `ip -br a` : liste les cartes réseau et leurs adresses, en format court (`-br` pour *brief*). La Kali n'a qu'une carte, `eth0`, avec l'adresse `10.1.10.10/24`.
 - `ip route` : affiche la table de routage. Une seule route par défaut doit apparaître : `default via 10.1.10.1`, c'est-à-dire pfSense. Tout ce que vous faites depuis la Kali traverse donc le pare-feu.
+
+Récupérez ensuite les **modèles des livrables**, que vous compléterez au fil du TP :
+
+```bash
+mkdir -p ~/livrables
+cd ~/livrables
+curl -fsSLO https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/tp1/modeles/cartographie.md
+curl -fsSLO https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/tp1/modeles/matrice-risques.md
+mousepad cartographie.md matrice-risques.md &
+```
+
+**Ligne par ligne.**
+
+- `mkdir -p ~/livrables` : crée le dossier des livrables dans votre dossier personnel ; `-p` évite une erreur s'il existe déjà.
+- `cd ~/livrables` : s'y place, pour que les fichiers téléchargés y arrivent.
+- `curl -fsSLO <adresse>` : télécharge un modèle depuis le dépôt GitHub. `-f` signale une erreur si le fichier n'existe pas, `-sS` reste silencieux sauf en cas d'erreur, `-L` suit les redirections, `-O` garde le nom d'origine du fichier.
+- `mousepad cartographie.md matrice-risques.md &` : ouvre les deux modèles dans l'éditeur de texte de la Kali, en arrière-plan (`&`) pour garder la main dans le terminal. Les modèles sont au format Markdown : remplissez les tableaux entre les barres `|`.
 
 ## Étape 2 — Sécuriser l'accès à pfSense
 
@@ -67,7 +84,22 @@ sudo nmap -sV -O --top-ports 200 10.1.20.10 10.1.30.10
 
 **La commande prend plusieurs minutes** (environ 3 minutes) : nmap attend les réponses des services lents ou inconnus. Pendant ce temps, appuyez sur Entrée dans le terminal pour afficher la progression.
 
-Consignez le résultat dans `cartographie.md` : pour chaque hôte, adresse, rôle supposé, services et versions repérés. Regardez d'un œil critique ce que nmap annonce : les versions et le système détectés sont-ils tous plausibles pour des serveurs Ubuntu 24.04 ? Un serveur expose-t-il plus de services que son rôle ne l'exige ?
+Consignez le résultat dans `cartographie.md` (sections 1 et 2) : pour chaque hôte, adresse, rôle supposé, services et versions repérés. Regardez d'un œil critique ce que nmap annonce : les versions et le système détectés sont-ils tous plausibles pour des serveurs Ubuntu 24.04 ? Un serveur expose-t-il plus de services que son rôle ne l'exige ?
+
+**Ce que nmap n'a pas vu.** srv-int héberge aussi l'agent de supervision Zabbix (10050/tcp) et le serveur RADIUS (1812-1813/udp), et web répond en SNMP (161/udp) : aucun n'apparaît. Vérifiez-le par un balayage ciblé :
+
+```bash
+sudo nmap -sV -p 10050 10.1.20.10
+sudo nmap -sU -sV -p 161,1812,1813 10.1.20.10 10.1.30.10
+```
+
+**Ligne par ligne.**
+
+- `-p 10050` : ne teste que le port 10050. Il n'apparaissait pas parce qu'il ne fait pas partie des 200 ports les plus courants.
+- `-sU` : balayage UDP. Sans cette option, nmap ne teste que TCP : tout service UDP est invisible.
+- `-p 161,1812,1813` : SNMP et RADIUS. En UDP, un port qui ne répond pas est noté `open|filtered` : nmap ne peut pas distinguer un service muet d'un filtrage. RADIUS ne répond pas à un inconnu qui n'a pas le secret partagé ; SNMP, lui, répond à la communauté `public`.
+
+Ajoutez ces services à votre cartographie. Retenez la leçon : un balayage ne montre que ce qu'on lui demande de regarder.
 
 > **Défi ★.** Récupérez les en-têtes HTTP et le certificat du serveur web avec des scripts NSE :
 >
@@ -139,7 +171,7 @@ sudo sysctl -qw net.ipv4.ip_forward=0
 - `timeout 20 arpspoof -i ens18 -t 10.10.0.30 10.10.0.20` : envoie en boucle à cloud-gw (`-t`, la cible) des réponses ARP affirmant que 10.10.0.20 a l'adresse MAC d'ext. `timeout 20` arrête l'attaque au bout de 20 secondes ; à l'arrêt, arpspoof réannonce la vraie adresse.
 - `sysctl -qw net.ipv4.ip_forward=0` : désactive le routage sur ext.
 
-Pendant ces 20 secondes, notez :
+Pendant ces 20 secondes, notez dans `cartographie.md` (sections 3 et 5) :
 
 - dans le terminal 3, les pings de cloud-gw qui **arrivent maintenant à ext**, adressés à la MAC d'ext, puis repartent vers la MAC de pfSense ;
 - dans le terminal 1, le ping qui continue de répondre, et le message d'arpwatch sur le changement d'adresse de 10.10.0.20 ;
@@ -179,7 +211,7 @@ Dans Wireshark, faites un clic droit sur un paquet FTP, puis *Follow → TCP Str
 
 **Pourquoi.** Les constats techniques ne valent que s'ils sont reliés aux enjeux : quel bien est menacé, par quel scénario, avec quelle vraisemblance et quelle gravité. La matrice de risques permet de prioriser les mesures.
 
-À partir de la cartographie et des observations, remplissez une matrice de 5 risques selon la méthode simplifiée du module 1 : bien, scénario, vraisemblance (1 à 4), gravité (1 à 4), niveau, mesures, risque résiduel. Imposez-vous au moins :
+À partir de la cartographie et des observations, remplissez `matrice-risques.md` selon la méthode simplifiée du module 1 : biens essentiels, puis pour chaque scénario la vraisemblance (1 à 4), la gravité (1 à 4), le niveau lu sur la matrice, les mesures et le risque résiduel. Imposez-vous au moins :
 
 - un risque de couche 2 ;
 - un risque lié à un protocole en clair ;

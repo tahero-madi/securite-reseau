@@ -53,6 +53,7 @@ En cas de problème : [En cas de blocage](en-cas-de-blocage.md).
 | --- | --- |
 | `tp1/` … `tp8/` | L'énoncé du TP (`README.md`) |
 | `tpN/corrige/` | Le corrigé du TP |
+| `tp1/modeles/` | Les modèles des livrables du TP1 (cartographie, matrice des risques) |
 | `img/topologie.png` | La topologie du laboratoire |
 | `fichiers/` | Les fichiers remis dans `~/TP` : captures `tp1-arp-demo.pcap`, `tp1-ftp-clear.pcap` et `tp7-incident.pcap`, mandat `mandat-audit-TP8.pdf`, et le script qui génère les captures |
 | `hexceos/` | La préparation des environnements (formateur) : réseau, installation des logiciels de chaque VM, vérification |

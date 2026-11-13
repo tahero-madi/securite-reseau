@@ -19,9 +19,11 @@ Les adresses MAC (préfixe `BC:24:11`, Proxmox) ne s'affichent que pour le LAN :
 | web | 80, 443 | nginx 1.24.0 (Ubuntu) | serveur web |
 | web | 3000 | `ppp?` | Juice Shop : l'empreinte contient `<title>OWASP Juice Shop</title>` |
 
-Absents du balayage, et c'est instructif :
+Absents du balayage, et c'est normal :
 - l'agent Zabbix de srv-int (10050/tcp) : port hors des 200 plus courants (`--top-ports 200`) ;
 - RADIUS (1812-1813/udp) sur srv-int et SNMP (161/udp) sur web : en UDP, donc invisibles pour un balayage TCP (il faudrait `-sU`).
+
+Le balayage ciblé de l'étape 4 les retrouve : 10050/tcp `open` (zabbix-agent) ; 161/udp `open` (SNMPv1/v2c, net-snmp, communauté `public` acceptée) ; 1812-1813/udp `open|filtered` (FreeRADIUS ne répond pas à une requête sans secret partagé valide). Leçon : l'absence d'un port dans un balayage ne prouve pas l'absence du service.
 
 Système : nmap annonce « Linux 4.19 - 5.15 » pour srv-int et ne conclut pas pour web, alors que les deux tournent sous le noyau 6.8 d'Ubuntu 24.04. Les détections de version et de système sont des **estimations** à recouper (bannières, accès authentifié), pas des preuves. « Network Distance: 2 hops » confirme qu'un routeur (pfSense) sépare la Kali des serveurs.
 
