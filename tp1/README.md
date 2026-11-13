@@ -95,7 +95,7 @@ sudo nmap -sU -sV -p 161,1812,1813 10.1.20.10 10.1.30.10
 
 **Ligne par ligne.**
 
-- `-p 10050` : ne teste que le port 10050. Il n'apparaissait pas parce qu'il ne fait pas partie des 200 ports les plus courants.
+- `-p 10050` : ne teste que le port 10050. Il n'apparaissait pas parce qu'il ne fait pas partie des 200 ports les plus courants. nmap le notera `tcpwrapped` : la connexion est acceptée puis refermée sans bannière, et le service ne peut pas être identifié de l'extérieur.
 - `-sU` : balayage UDP. Sans cette option, nmap ne teste que TCP : tout service UDP est invisible.
 - `-p 161,1812,1813` : SNMP et RADIUS. En UDP, un port qui ne répond pas est noté `open|filtered` : nmap ne peut pas distinguer un service muet d'un filtrage. RADIUS ne répond pas à un inconnu qui n'a pas le secret partagé ; SNMP, lui, répond à la communauté `public`.
 
