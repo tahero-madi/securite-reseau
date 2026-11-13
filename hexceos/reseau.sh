@@ -69,24 +69,28 @@ EOF
 }
 
 # ---------------------------------------------------------------------
-#  Kali : LAN fixe derrière pfSense, carte WAN coupée (y compris au démarrage)
+#  Kali : une seule carte, sur le LAN, en adresse fixe derrière pfSense.
+#  (Si une ancienne carte WAN en 10.10.0.x existe encore, elle est coupée.)
 # ---------------------------------------------------------------------
 config_kali() {
   local LIF WIF C0 C1
   LIF=$(carte 10.1.10.)
-  WIF=$(carte 10.10.0.); WIF=${WIF:-eth0}
   C1=$(nmcli -g GENERAL.CONNECTION dev show "$LIF")
-  C0=$(nmcli -g GENERAL.CONNECTION dev show "$WIF" 2>/dev/null || true); [ "$C0" = "--" ] && C0=""
-  echo "  LAN : $LIF ($C1)   WAN : $WIF (${C0:-déjà coupée})"
+  echo "  LAN : $LIF ($C1)"
 
   nmcli con mod "$C1" ipv4.method manual ipv4.addresses 10.1.10.10/24 \
        ipv4.gateway 10.1.10.1 ipv4.dns 10.1.10.1 ipv4.ignore-auto-dns yes \
        ipv4.ignore-auto-routes yes ipv6.method disabled
   nmcli con up "$C1" >/dev/null
 
-  if [ -n "$C0" ]; then
-    nmcli con mod "$C0" connection.autoconnect no
-    nmcli dev disconnect "$WIF" >/dev/null
+  WIF=$(carte 10.10.0.)
+  if [ -n "$WIF" ] && [ "$WIF" != "$LIF" ]; then
+    C0=$(nmcli -g GENERAL.CONNECTION dev show "$WIF" 2>/dev/null || true)
+    if [ -n "$C0" ] && [ "$C0" != "--" ]; then
+      echo "  ancienne carte WAN $WIF ($C0) : coupée"
+      nmcli con mod "$C0" connection.autoconnect no
+      nmcli dev disconnect "$WIF" >/dev/null
+    fi
   fi
   sleep 3
 }

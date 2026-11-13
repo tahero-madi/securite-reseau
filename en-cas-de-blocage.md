@@ -4,7 +4,7 @@ Commencez par vérifier, dans le portail, que les 6 machines sont « En marche �
 
 | Symptôme | Cause probable | Remède |
 | --- | --- | --- |
-| La Kali n'a plus accès à rien | Route ou adresse perdue | `ip -br a` et `ip route` : il faut `10.1.10.10/24` sur `eth1` et une seule route `default via 10.1.10.1`. Sinon, relancer `curl -fsSL https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/hexceos/reseau.sh \| sudo bash` (demander au formateur si la Kali n'a plus Internet) |
+| La Kali n'a plus accès à rien | Route ou adresse perdue | `ip -br a` et `ip route` : il faut `10.1.10.10/24` sur `eth0` et une seule route `default via 10.1.10.1`. Sinon, relancer `curl -fsSL https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/hexceos/reseau.sh \| sudo bash` (demander au formateur si la Kali n'a plus Internet) |
 | Une machine ne répond plus en SSH | Règle pfSense trop stricte, ou service SSH arrêté | Ouvrir sa console dans le portail, puis `ip -br a`, `ip route` et `sudo systemctl status ssh` ; relire les règles de l'interface concernée |
 | Interface web de pfSense inaccessible | Vous vous êtes enfermé dehors (règle anti-verrouillage retirée trop tôt) | Console de pfSense dans le portail : option 8 (shell) puis `pfctl -d` pour couper le filtrage le temps de corriger, `pfctl -e` pour le remettre ; ou restaurer l'instantané de pfSense |
 | Une règle pfSense semble sans effet | Ordre des règles, mauvaise interface, ou état déjà établi | Les règles s'évaluent de haut en bas, sur l'interface d'entrée ; *Diagnostics → States* pour supprimer les états existants |

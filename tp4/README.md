@@ -13,7 +13,7 @@ ldapsearch -x -H ldap://localhost -b "dc=lab,dc=local" -D "cn=admin,dc=lab,dc=lo
 ```
 
 2. Repérez les groupes (`ou=groups`), par exemple `admins` et `users`. Notez le DN d'un utilisateur de chaque groupe.
-3. Vérifiez le chiffrement. Sur la Kali, ouvrez Wireshark sur `eth1`, filtre `ldap`. Depuis un terminal **de la Kali**, faites un *bind* en clair :
+3. Vérifiez le chiffrement. Sur la Kali, ouvrez Wireshark sur `eth0`, filtre `ldap`. Depuis un terminal **de la Kali**, faites un *bind* en clair :
 
 ```bash
 ldapsearch -x -H ldap://10.1.20.10 -D "uid=alice,ou=people,dc=lab,dc=local" -W -b "dc=lab,dc=local" "(uid=alice)"

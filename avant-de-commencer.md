@@ -35,13 +35,13 @@ Le réseau WAN `10.10.0.0/24` joue **Internet**. Sa passerelle, `10.10.0.1`, app
 **Identifiants et fichiers.** Les identifiants des services du lab (Greenbone, LDAP, FTP…) sont dans `~/TP/identifiants-lab.txt` sur la Kali ; ceux des machines et de pfSense sont dans le portail (bouton clé). Vous changerez plusieurs mots de passe au fil des TP. Les fichiers de TP (captures, mandat d'audit) sont dans `~/TP` ; ils sont aussi dans ce dépôt, dans [`fichiers/`](fichiers).
 
 **Captures.** Il n'y a pas de port miroir dans ce laboratoire. Pour observer un trafic, capturez là où il passe :
-- sur la **Kali** (`eth1`), pour tout ce qu'elle envoie ou reçoit, avec Wireshark ;
+- sur la **Kali** (`eth0`), pour tout ce qu'elle envoie ou reçoit, avec Wireshark ;
 - sur une **machine Linux**, avec `sudo tcpdump -ni ens18 -w /tmp/capture.pcap`, puis rapatriez le fichier sur la Kali avec `scp` pour l'ouvrir dans Wireshark ;
 - sur **pfSense**, avec *Diagnostics → Packet Capture* : choisissez l'interface, lancez, puis téléchargez le fichier.
 
 ## Deux règles à respecter
 
-- **Ne rallumez pas la carte `eth0` de la Kali**, et ne modifiez pas les routes des machines (sauf consigne explicite d'un TP). Le réseau de la plateforme sait router entre vos zones : une route modifiée ferait passer le trafic **à côté** de pfSense, et vos tests de filtrage ne voudraient plus rien dire.
+- **Ne modifiez pas les routes des machines** (sauf consigne explicite d'un TP). Le réseau de la plateforme sait router entre vos zones : une route modifiée ferait passer le trafic **à côté** de pfSense, et vos tests de filtrage ne voudraient plus rien dire.
 - **Le compte `formation`** a les droits `sudo` sur toutes les machines Linux : utilisez-les pour les manipulations demandées, pas pour contourner un exercice.
 
 ## Habitudes à prendre

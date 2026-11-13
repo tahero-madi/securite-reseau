@@ -56,7 +56,7 @@ Remarque : la publication de 443 masque désormais l'interface web de pfSense c�
 11. Ajoutez à la Kali l'adresse d'un **poste utilisateur**, le temps des tests :
 
 ```bash
-sudo ip addr add 10.1.10.20/24 dev eth1
+sudo ip addr add 10.1.10.20/24 dev eth0
 ```
 
 Un test depuis cette adresse se fait avec `nc -s 10.1.10.20` ou `curl --interface 10.1.10.20`.
@@ -81,7 +81,7 @@ Un test depuis cette adresse se fait avec `nc -s 10.1.10.20` ou `curl --interfac
 
 Pour un test depuis web ou srv-int, connectez-vous d'abord en SSH depuis la Kali (`ssh formation@10.1.30.10`). Si une règle vous empêche d'y entrer, ouvrez la console de la machine depuis le portail. Consultez *Status → System Logs → Firewall* : vos refus apparaissent, horodatés. Filtrez par interface.
 
-13. Retirez l'adresse de test : `sudo ip addr del 10.1.10.20/24 dev eth1`.
+13. Retirez l'adresse de test : `sudo ip addr del 10.1.10.20/24 dev eth0`.
 
 > **Défi ★.** Ajoutez un réseau invité isolé (interface virtuelle VLAN 90 sur LAN) : accès Internet seulement, aucun accès aux autres zones. Écrivez ses règles. Discutez de la sécurité de couche 2 nécessaire sur le commutateur pour que ce VLAN tienne réellement.
 

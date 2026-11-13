@@ -13,7 +13,7 @@ ip -br a
 ip route
 ```
 
-Votre poste a l'adresse `10.1.10.10` sur `eth1` (LAN) et une seule route par défaut, via pfSense (`10.1.10.1`). La carte `eth0` est coupée : elle ne doit pas être rallumée (voir [Avant de commencer](../avant-de-commencer.md)).
+Votre poste a une seule carte réseau, `eth0`, sur le LAN, avec l'adresse `10.1.10.10`, et une seule route par défaut, via pfSense (`10.1.10.1`). Tout ce que vous faites depuis la Kali traverse donc pfSense.
 
 2. Prenez un **instantané** de vos 6 machines depuis le portail (bouton appareil photo), nommé `depart` : vous pourrez y revenir à tout moment.
 3. Vérifiez l'accès à l'interface de pfSense : dans Firefox, `https://10.1.10.1`. Connectez-vous avec le compte fourni par le portail (bouton clé). **Changez immédiatement le mot de passe admin** (*System → User Manager*) : c'est la première mesure de durcissement.
@@ -78,7 +78,7 @@ Pendant ces 20 secondes, notez :
 
 À la fin, `arpspoof` réannonce la vraie adresse. Sur cloud-gw, arrêtez le ping (Ctrl+C) et `arpwatch` (`sudo pkill arpwatch`), puis vérifiez avec `ip neigh show 10.10.0.20` que la MAC de pfSense est revenue (sinon : `sudo ip neigh flush 10.10.0.20`).
 
-11. **Capture d'un flux en clair.** Sur la Kali, ouvrez Wireshark sur `eth1` (l'interface de votre poste), filtre d'affichage `ftp`. Depuis un terminal de la Kali, connectez-vous au service FTP ancien exposé par `web` :
+11. **Capture d'un flux en clair.** Sur la Kali, ouvrez Wireshark sur `eth0` (l'interface de votre poste), filtre d'affichage `ftp`. Depuis un terminal de la Kali, connectez-vous au service FTP ancien exposé par `web` :
 
 ```bash
 ftp 10.1.30.10

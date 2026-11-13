@@ -8,7 +8,7 @@ Le routeur de la plateforme (10.10.0.1 sur le WAN, et une adresse en .254 sur ch
 
 | VM | Adresse | Passerelle | Route en plus | DNS |
 | --- | --- | --- | --- | --- |
-| Kali | 10.1.10.10/24 (eth1) ; eth0 coupée | 10.1.10.1 | — | 10.1.10.1 |
+| Kali | 10.1.10.10/24 (une seule carte, sur le LAN) | 10.1.10.1 | — | 10.1.10.1 |
 | srv-int | 10.1.20.10/24 | 10.1.20.1 | — | 10.1.20.1 |
 | web | 10.1.30.10/24 | 10.1.30.1 | — | 10.1.30.1 |
 | cloud-gw | 10.10.0.30/24 (+ VPC 10.101.1.1 sur vpc0) | 10.10.0.1 | 10.1.0.0/16 via 10.10.0.20 | 10.10.0.1 |
@@ -75,6 +75,6 @@ Redémarrez les 6 VM, relancez `verif.sh`, puis prenez un instantané de chaque 
 
 ## Points de vigilance
 
-- **Ne pas rallumer eth0 sur la Kali** ni modifier les routes des VM pendant les TP : le trafic contournerait pfSense.
+- **Ne pas modifier les routes des VM** pendant les TP : le trafic contournerait pfSense.
 - **Usurpation ARP du TP1** : elle se joue sur le WAN, entre ext et cloud-gw. Avant de la faire faire aux apprenants, vérifiez que le WAN de chaque environnement est bien isolé : depuis ext, `sudo arping -c3 10.10.0.20` ne doit obtenir qu'une seule adresse MAC.
 - **IPsec du TP6** : vérifiez une fois que l'ESP (protocole 50) passe entre pfSense et cloud-gw sur le WAN de la plateforme.
