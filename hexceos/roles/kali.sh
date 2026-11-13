@@ -13,7 +13,7 @@ H=$(getent passwd "$U" | cut -d: -f6)
 echo "== Outils du poste (quelques minutes)"
 echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
 OUTILS="wireshark tshark nmap arpwatch dsniff hping3 ldap-utils freeradius-utils eapoltest snmp \
-  tnftp telnet testssl.sh ssh-audit python3-scapy git openssl whois sshpass snmp-mibs-downloader"
+  tnftp telnet testssl.sh ssh-audit python3-scapy git openssl whois sshpass snmp-mibs-downloader nikto"
 MANQUANTS=""
 for p in $OUTILS; do
   dpkg -s "$p" >/dev/null 2>&1 && continue

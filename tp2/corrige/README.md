@@ -10,6 +10,12 @@
 
 Compte de scan : insister sur le principe (dédié, clé, droits minimaux, restriction par source avec `from="10.1.10.10"`, journalisé). Faire constater qu'aucun `sudo` n'est nécessaire pour un scan de correctifs sur Ubuntu (lecture de `dpkg`). Ne jamais utiliser un compte root réutilisé.
 
+**Liste de ports et SNMP.** Avec « All IANA assigned TCP » seule, le scan non authentifié ne voit pas SNMP : 0 Critical, 0 High sur `web` (essai réel). Avec la liste `IANA-TCP+SNMP`, Greenbone teste UDP 161 et signale la communauté par défaut `public` acceptée par `web`, en général en sévérité High (lecture de la configuration, des interfaces, des processus…). Message : la couverture d'un scan dépend de la liste de ports ; la fixer, c'est décider de ce qu'on ne verra pas. Si la copie n'affiche pas 1 port UDP, la plage a été ajoutée en TCP.
+
+**Scan non authentifié contre authentifié (essai réel).** Non authentifié (web et srv-int) : 0 Critical, 0 High, 5 Medium, 6 Low, sévérité maximale 5.0 — Greenbone ne voit que ce qui s'observe de l'extérieur (FTP et Telnet en clair, TLS 1.0/1.1, dépôt `.git` exposé), car la bannière « nginx 1.24.0 (Ubuntu) » ne dit rien des correctifs appliqués par Ubuntu. Authentifié (web seul) : 8 Critical, 21 High, 34 Medium, 5 Low, sévérité maximale 9.8 — les correctifs de sécurité Ubuntu (USN) manquants des paquets restés en version de sortie. C'est l'argument central du TP.
+
+**Défi ★ nikto.** nikto relève ce qui relève du serveur et de l'application web : en-têtes de sécurité absents (`X-Frame-Options`, `X-Content-Type-Options`), cookies sans `HttpOnly`, version du serveur, répertoires et fichiers intéressants (dont, selon la durée, `/.git/`), page de connexion de DVWA. Il ne trouve pas les injections SQL ni les XSS de DVWA : il faudrait un scanner applicatif qui explore et soumet les formulaires (OWASP ZAP, Burp) ou un test manuel, ce qui sort du cadre de la formation. À retenir : scanner de vulnérabilités, scanner web et test d'intrusion sont complémentaires.
+
 **Étape 9.** Les apprenants doivent articuler les trois signaux : CVSS (sévérité), EPSS (probabilité), KEV (exploitation avérée) + exposition de l'actif. Attendu : une vulnérabilité KEV sur `web` (exposé) passe avant une CVSS 9.8 théorique sur un hôte interne non exposé. Vérifier qu'ils consultent réellement KEV et EPSS et ne se fient pas au seul score.
 
 **Défi ★ — exemple de script.**

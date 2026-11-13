@@ -59,7 +59,7 @@ main() {
   elif systemctl is-active -q lab-greenbone-mdp.timer 2>/dev/null; then avert "mot de passe admin de Greenbone pas encore positionné (réessai automatique ; en attendant : admin / admin)"
   else avert "mot de passe admin de Greenbone : à vérifier (connexion admin / Greenbone-3020)"; fi
   export PATH="$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin"
-  for o in nmap wireshark arpwatch arpspoof radtest testssl.sh ssh-audit snmpwalk ftp; do
+  for o in nmap wireshark arpwatch arpspoof radtest testssl.sh ssh-audit snmpwalk ftp nikto; do
     if command -v $o >/dev/null; then ok "$o ($(command -v $o))"
     elif [ $o = testssl.sh ] && command -v testssl >/dev/null; then avert "testssl.sh absent, mais testssl présent : sudo ln -sf $(command -v testssl) /usr/local/bin/testssl.sh"
     else avert "$o absent"; fi

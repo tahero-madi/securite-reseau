@@ -30,18 +30,25 @@ sudo docker compose -p greenbone-community-edition -f /opt/greenbone/compose.yam
 3. Vérifiez le flux de vulnérabilités : *Administration → Feed Status*. Toutes les lignes doivent indiquer **Current**.
 4. Facultatif, mais pratique : dans *My Settings*, réglez *Timezone* sur `Europe/Paris`. Sinon, toutes les dates de la console sont en heure UTC (une heure de moins en hiver).
 
-## Étape 3 — Créer la cible
+## Étape 3 — Préparer la liste de ports et la cible
 
-**Pourquoi.** Une **cible** décrit *quoi* scanner : des adresses et une liste de ports. On la crée une fois et on la réutilise dans plusieurs tâches.
+**Pourquoi.** Un scanner ne teste que les ports qu'on lui donne. La liste prédéfinie « All IANA assigned TCP » ne contient **que des ports TCP** : un service UDP, comme SNMP (port 161), resterait invisible. Au TP1, `nmap -sU` a trouvé SNMP sur `web`, avec la communauté par défaut `public` : on l'ajoute à la liste. Inutile en revanche de prendre « All IANA assigned TCP and UDP » : des milliers de ports UDP rallongeraient fortement le scan. Les listes prédéfinies ne sont pas modifiables : on en fait une copie.
 
-*Configuration → Targets*, puis l'icône **New Target** (étoile, en haut à gauche) :
+**La liste de ports.** *Configuration → Port Lists* :
+
+1. Sur la ligne **All IANA assigned TCP**, cliquez sur l'icône **Clone** (colonne *Actions*). Une copie apparaît, nommée « All IANA assigned TCP Clone 1 ».
+2. Sur la ligne de la copie, cliquez sur l'icône **Edit** (crayon). Renommez-la `IANA-TCP+SNMP`.
+3. Dans la section **Port Ranges** de la même fenêtre, ajoutez une plage (icône **New Port Range**) : *Start* `161`, *End* `161`, *Protocol* **UDP**. Validez, puis *Save*.
+4. Dans la liste, la colonne *Port Counts* de `IANA-TCP+SNMP` doit indiquer **1** port UDP.
+
+**La cible.** *Configuration → Targets*, puis l'icône **New Target** (étoile, en haut à gauche) :
 
 - *Name* : `SRV-DMZ` ;
 - *Hosts* : *Manual*, `10.1.30.10, 10.1.20.10` ;
-- *Port List* : **All IANA assigned TCP** ;
+- *Port List* : **IANA-TCP+SNMP** ;
 - laissez le reste par défaut, puis *Save*.
 
-`web` (10.1.30.10) est la cible riche en vulnérabilités (services anciens) ; `srv-int` est un serveur à jour, utile pour la comparaison.
+Une **cible** décrit *quoi* scanner : des adresses et une liste de ports. On la crée une fois et on la réutilise dans plusieurs tâches. `web` (10.1.30.10) est la cible riche en vulnérabilités (services anciens) ; `srv-int` est un serveur à jour, utile pour la comparaison.
 
 ## Étape 4 — Créer et lancer le scan non authentifié
 
@@ -94,6 +101,18 @@ head -3 ~/livrables/tp2-scan-non-auth.csv
 Le CSV contient les résultats affichés par le **filtre** du rapport (en haut de la page) : par défaut, les résultats de simple information (*Log*) sont masqués, ce qui convient ici.
 
 > **Lecture critique.** Sur `web`, le scan non authentifié remonte beaucoup de résultats fiables (services anciens réellement exposés). Sur un serveur à jour comme `srv-int`, certains résultats fondés sur une bannière peuvent être des faux positifs : d'où l'intérêt du scan authentifié.
+
+> **Défi ★ — un outil pour chaque métier (5 min).** Greenbone recherche des vulnérabilités **connues** : versions, configurations, correctifs manquants. Il n'explore pas les applications web : les failles de DVWA ou de Juice Shop (injection SQL, XSS…) lui échappent. Lancez un scanner web spécialisé sur DVWA, pendant cinq minutes au plus :
+>
+> ```bash
+> nikto -h http://10.1.30.10/dvwa/ -maxtime 300s -o ~/livrables/tp2-nikto.txt
+> ```
+>
+> - `nikto -h http://10.1.30.10/dvwa/` : analyse l'application web à cette adresse : en-têtes de sécurité, fichiers sensibles, configurations dangereuses, pages connues.
+> - `-maxtime 300s` : arrête l'analyse au bout de 5 minutes.
+> - `-o ~/livrables/tp2-nikto.txt` : enregistre le résultat dans vos livrables.
+>
+> Comparez avec le rapport de Greenbone pour `web` : quels constats nikto fait-il que Greenbone n'a pas faits ? Et nikto lui-même trouve-t-il les injections SQL de DVWA ? Conclusion à formuler : un scan de vulnérabilités ne remplace ni un scanner applicatif (OWASP ZAP, Burp) ni un test d'intrusion.
 
 ## Étape 6 — Préparer un compte de scan
 
@@ -156,7 +175,7 @@ ssh -i ~/gvm-scan gvm-scan@10.1.30.10 'dpkg -l | wc -l'
 2. *Configuration → Targets* → **New Target** :
    - *Name* : `WEB-auth` ;
    - *Hosts* : `10.1.30.10` ;
-   - *Port List* : **All IANA assigned TCP** ;
+   - *Port List* : **IANA-TCP+SNMP** ;
    - *Credentials for authenticated checks*, ligne **SSH** : `cred-ssh`, port 22 ;
    - *Save*.
 
