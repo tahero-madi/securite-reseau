@@ -21,7 +21,7 @@ sudo docker compose -p greenbone-community-edition -f /opt/greenbone/compose.yam
      exec -u gvmd gvmd gvmd --get-scanners
 ```
 
-3. Ouvrez la console GSA dans Firefox, à l'adresse indiquée dans `~/TP/identifiants-lab.txt` (`http://127.0.0.1:9392` ou `https://127.0.0.1` selon la version). Connectez-vous (compte `admin`, mot de passe dans le même fichier) et **changez le mot de passe** (*Administration → Users*). Dans *Administration → Feed Status*, vérifiez que les flux sont « Current ».
+3. Ouvrez la console GSA dans Firefox, à l'adresse indiquée dans `~/TP/identifiants-lab.txt` (`http://127.0.0.1:9392` ou `https://127.0.0.1` selon la version). Connectez-vous (compte `admin`, mot de passe dans le même fichier) et **changez le mot de passe** : menu de l'utilisateur en haut à droite → *My Settings* → icône crayon → *Change Password* (un compte ne peut pas modifier son propre mot de passe depuis *Administration → Users*). Dans *Administration → Feed Status*, vérifiez que les flux sont « Current ».
 
 ## Partie B — Scan non authentifié (25 min)
 
