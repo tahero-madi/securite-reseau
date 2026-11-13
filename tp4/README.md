@@ -6,24 +6,28 @@
 
 ## Partie A — Explorer l'annuaire LDAP (25 min)
 
-1. Rebondissez en SSH sur `srv-int`. L'annuaire OpenLDAP est préchargé (base `dc=lab,dc=local`, unités `people` et `groups`). Explorez-le :
+1. Connectez-vous en SSH à `srv-int` depuis la Kali (`ssh formation@10.1.20.10`). L'annuaire OpenLDAP est préchargé (base `dc=lab,dc=local`, unités `people` et `groups`). Explorez-le :
 
 ```bash
 ldapsearch -x -H ldap://localhost -b "dc=lab,dc=local" -D "cn=admin,dc=lab,dc=local" -W "(objectClass=inetOrgPerson)" uid cn
 ```
 
 2. Repérez les groupes (`ou=groups`), par exemple `admins` et `users`. Notez le DN d'un utilisateur de chaque groupe.
-3. Vérifiez le chiffrement. Sur le poste, ouvrez Wireshark sur `v-srv-int` (port miroir de srv-int), filtre `ldap`. Depuis un terminal **du poste**, faites un *bind* en clair :
+3. Vérifiez le chiffrement. Sur la Kali, ouvrez Wireshark sur `eth1`, filtre `ldap`. Depuis un terminal **de la Kali**, faites un *bind* en clair :
 
 ```bash
 ldapsearch -x -H ldap://10.1.20.10 -D "uid=alice,ou=people,dc=lab,dc=local" -W -b "dc=lab,dc=local" "(uid=alice)"
 ```
 
-Constatez que le *bind* simple expose le mot de passe d'alice dans la capture. Refaites le test en **LDAPS** (port 636, certificat signé par l'AC du lab, déjà approuvée par le poste) : la capture ne montre plus que du TLS. Comment **forcer** le chiffrement côté serveur (indice : `olcSecurity` ou suppression de `ldap:///` dans `/etc/default/slapd`) ?
+Constatez que le *bind* simple expose le mot de passe d'alice dans la capture. Refaites le test en **LDAPS** (port 636). Le certificat de srv-int est signé par l'AC du lab : récupérez d'abord ce certificat d'AC, puis indiquez-le à `ldapsearch`. Dans Wireshark, filtre `tcp.port==636` : la capture ne montre plus que du TLS.
 
 ```bash
-ldapsearch -x -H ldaps://srv-int.lab.local -b "dc=lab,dc=local" -D "cn=svc-radius,ou=services,dc=lab,dc=local" -W "(uid=alice)"
+scp formation@10.1.20.10:pki/ca.crt ~/pki/ca-lab.crt
+LDAPTLS_CACERT=~/pki/ca-lab.crt ldapsearch -x -H ldaps://srv-int.lab.local -b "dc=lab,dc=local" \
+     -D "cn=svc-radius,ou=services,dc=lab,dc=local" -W "(uid=alice)"
 ```
+
+Comment **forcer** le chiffrement côté serveur (indice : `olcSecurity` ou suppression de `ldap:///` dans `/etc/default/slapd`) ?
 
 ## Partie B — FreeRADIUS adossé à LDAP (40 min)
 
@@ -63,15 +67,15 @@ Observez l'`Access-Accept`. Testez un mauvais mot de passe → `Access-Reject`. 
 
 7. Faites en sorte que seuls les membres du groupe `admins` reçoivent un attribut d'autorisation spécifique (par exemple une classe ou un VLAN). Utilisez le module LDAP pour récupérer l'appartenance au groupe et, dans `post-auth`, ajoutez l'attribut conditionnel. Testez avec un membre et un non-membre de `admins`.
 
-> **Défi ★ — EAP-TLS.** Générez une PKI de laboratoire (ou utilisez celle fournie), créez un certificat client pour `alice`, configurez le module `eap` en `default_eap_type = tls`, et testez avec `eapol_test` (paquet `wpa_supplicant`) un échange EAP-TLS. Comparez la robustesse avec PEAP-MSCHAPv2 où le certificat serveur n'est pas vérifié.
+> **Défi ★ — EAP-TLS.** Utilisez la PKI du lab : sur `srv-int`, `~/pki/` contient l'AC (`ca.crt`) et un certificat client pour `alice` (`alice.crt`, `alice.key`) ; les certificats serveur de FreeRADIUS sont dans `/etc/freeradius/3.0/certs/lab/`. Pour `alice`, configurez le module `eap` en `default_eap_type = tls`, et testez avec `eapol_test` (paquet `wpa_supplicant`) un échange EAP-TLS. Comparez la robustesse avec PEAP-MSCHAPv2 où le certificat serveur n'est pas vérifié.
 
 ## Partie D — Authentifier les admins pfSense via RADIUS (25 min)
 
 8. Sur `fw` : *System → User Manager → Authentication Servers → Add*, type RADIUS, hôte `10.1.20.10`, secret identique à `clients.conf`, services « Authentication », port 1812.
 9. *Diagnostics → Authentication* : testez avec `alice`. Puis, dans *System → User Manager → Settings*, placez le serveur RADIUS comme source d'authentification de la GUI (en conservant le compte local de secours).
-10. Déconnectez-vous et reconnectez-vous à pfSense avec un compte LDAP via RADIUS. Pendant le test, capturez l'échange (Wireshark sur `v-srv-int`, filtre `radius`) : identifiez `Access-Request`, `Access-Accept`, la présence de `Message-Authenticator`.
+10. Déconnectez-vous et reconnectez-vous à pfSense avec un compte LDAP via RADIUS. Pendant le test, capturez l'échange avec pfSense lui-même : *Diagnostics → Packet Capture*, interface **SRV**, protocole UDP, port 1812, *Start* ; reconnectez-vous ; *Stop*, puis *Download Capture* et ouvrez le fichier dans Wireshark (filtre `radius`). Identifiez `Access-Request`, `Access-Accept`, la présence de `Message-Authenticator`.
 
-**Livrable** : traces `radtest` (accept/reject), extrait `clients.conf`, capture RADIUS annotée, note (5 lignes) justifiant le choix EAP-TLS vs PEAP pour un déploiement 802.1X.
+**Livrable** (dans `~/livrables`) : traces `radtest` (accept/reject), extrait `clients.conf`, capture RADIUS annotée, note (5 lignes) justifiant le choix EAP-TLS vs PEAP pour un déploiement 802.1X.
 
 ## Questions de validation
 

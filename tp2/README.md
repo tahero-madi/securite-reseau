@@ -6,7 +6,7 @@
 
 ## Partie A — Préparer le scanner (20 min)
 
-1. Greenbone tourne **sur votre poste**, dans des conteneurs Docker : le scanner est donc vu par le réseau comme le poste d'administration `10.1.10.10`, et ses paquets traversent pfSense pour atteindre SRV et DMZ. Vérifiez l'état des conteneurs dans un terminal du poste :
+1. Greenbone tourne **sur votre Kali**, dans des conteneurs Docker : le scanner est donc vu par le réseau comme le poste d'administration `10.1.10.10`, et ses paquets traversent pfSense pour atteindre SRV et DMZ. Vérifiez l'état des conteneurs dans un terminal de la Kali :
 
 ```bash
 sudo docker compose -p greenbone-community-edition -f /opt/greenbone/compose.yaml ps
@@ -21,7 +21,7 @@ sudo docker compose -p greenbone-community-edition -f /opt/greenbone/compose.yam
      exec -u gvmd gvmd gvmd --get-scanners
 ```
 
-3. Ouvrez la console GSA dans le navigateur du poste, à l'adresse donnée par `lab urls`. Connectez-vous (compte `admin`, mot de passe dans `~/TP/identifiants-lab.txt`) et **changez le mot de passe** (*Administration → Users*). Dans *Administration → Feed Status*, vérifiez que les flux sont « Current ».
+3. Ouvrez la console GSA dans Firefox, à l'adresse indiquée dans `~/TP/identifiants-lab.txt` (`http://127.0.0.1:9392` ou `https://127.0.0.1` selon la version). Connectez-vous (compte `admin`, mot de passe dans le même fichier) et **changez le mot de passe** (*Administration → Users*). Dans *Administration → Feed Status*, vérifiez que les flux sont « Current ».
 
 ## Partie B — Scan non authentifié (25 min)
 
@@ -33,12 +33,12 @@ sudo docker compose -p greenbone-community-edition -f /opt/greenbone/compose.yam
 
 ## Partie C — Scan authentifié (30 min)
 
-7. Préparez un **compte de scan dédié** sur `web`. Le principe : un compte sans mot de passe, accessible par clé uniquement, depuis la seule adresse du scanner, sans droits d'administration (lire la liste des paquets ne demande aucun privilège). Sur le poste, générez la clé puis copiez la partie publique :
+7. Préparez un **compte de scan dédié** sur `web`. Le principe : un compte sans mot de passe, accessible par clé uniquement, depuis la seule adresse du scanner, sans droits d'administration (lire la liste des paquets ne demande aucun privilège). Sur la Kali, générez la clé puis copiez la partie publique :
 
 ```bash
 ssh-keygen -t ed25519 -f ~/gvm-scan -N '' -C gvm-scan
-scp ~/gvm-scan.pub stagiaire@10.1.30.10:
-ssh stagiaire@10.1.30.10
+scp ~/gvm-scan.pub formation@10.1.30.10:
+ssh formation@10.1.30.10
 ```
 
 Puis, sur `web` :
@@ -51,9 +51,9 @@ sudo chown gvm-scan:gvm-scan /home/gvm-scan/.ssh/authorized_keys
 sudo chmod 600 /home/gvm-scan/.ssh/authorized_keys
 ```
 
-Vérifiez depuis le poste : `ssh -i ~/gvm-scan gvm-scan@10.1.30.10 'dpkg -l | wc -l'`.
+Vérifiez depuis la Kali : `ssh -i ~/gvm-scan gvm-scan@10.1.30.10 'dpkg -l | wc -l'`.
 
-8. Dans GSA, créez un identifiant SSH (*Configuration → Credentials → New*, type « Username + SSH Key ») `cred-ssh` : utilisateur `gvm-scan`, clé privée = le fichier `~/gvm-scan` du poste.
+8. Dans GSA, créez un identifiant SSH (*Configuration → Credentials → New*, type « Username + SSH Key ») `cred-ssh` : utilisateur `gvm-scan`, clé privée = le fichier `~/gvm-scan` de la Kali.
 9. Créez une cible `WEB-auth` sur `10.1.30.10` en y associant l'identifiant SSH (champ *SSH credential*).
 10. Lancez une tâche authentifiée `Scan-auth`. Comparez : le scan authentifié détecte les **correctifs manquants** (paquets), invisibles au scan réseau, avec une QoD élevée et moins de faux positifs.
 
@@ -61,13 +61,13 @@ Vérifiez depuis le poste : `ssh -i ~/gvm-scan gvm-scan@10.1.30.10 'dpkg -l | wc
 
 11. Constituez `rapport-vulns` : sélectionnez 10 à 15 vulnérabilités et, pour chacune : hôte, CVE, CVSS, et un classement de priorité P0-P3 (module 2). Pour les 3 plus hautes, vérifiez manuellement : la CVE est-elle au **KEV** (catalogue CISA) ? quel **EPSS** (site FIRST/EPSS) ? Justifiez l'ordre de traitement.
 
-> **Défi ★.** Exportez le rapport au format CSV depuis GSA et, sur `poste`, écrivez un court script (Python/awk) qui trie les vulnérabilités par couple (sévérité, QoD) et sort les 5 prioritaires. Discutez : trier par CVSS seul suffit-il ?
+> **Défi ★.** Exportez le rapport au format CSV depuis GSA et, sur la Kali, écrivez un court script (Python/awk) qui trie les vulnérabilités par couple (sévérité, QoD) et sort les 5 prioritaires. Discutez : trier par CVSS seul suffit-il ?
 
 ## Partie E — Remédier et contre-scanner (20 min)
 
 12. Choisissez **une** vulnérabilité corrigeable sur `web` (par exemple un service ancien inutile à désactiver, un paquet à mettre à jour, ou une configuration SSH à durcir). Appliquez la correction :
 
-Sur `web` (`ssh stagiaire@10.1.30.10`) :
+Sur `web` (`ssh formation@10.1.30.10`) :
 
 ```bash
 # exemple : mise à jour ciblée d'un paquet
@@ -78,7 +78,7 @@ sudo systemctl disable --now <service>
 
 13. Relancez la tâche authentifiée (contre-scan) et montrez que la vulnérabilité a **disparu** du rapport. Capturez l'avant/après.
 
-**Livrable** : `rapport-vulns` + captures avant/après de la remédiation.
+**Livrable** (dans `~/livrables`) : `rapport-vulns` + captures avant/après de la remédiation.
 
 ## Questions de validation
 

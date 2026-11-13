@@ -6,6 +6,8 @@
 #  La machine est reconnue à son adresse IP. Le script peut être relancé.
 # =====================================================================
 set -uo pipefail
+
+main() {
 [ "$(id -u)" -eq 0 ] || { echo "À lancer avec sudo"; exit 1; }
 
 VERT='\033[32m'; ROUGE='\033[31m'; RAZ='\033[0m'
@@ -138,3 +140,6 @@ if [ "$ERREURS" -eq 0 ]; then
 else
   echo -e "${ROUGE}== $ROLE : $ERREURS vérification(s) en échec${RAZ}"
 fi
+}
+
+main "$@"

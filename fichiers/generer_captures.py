@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Génère les captures pédagogiques du lab 3-020 (adresses du lab, trafic simulé et inerte).
 
-  tp1-arp-demo.pcap   usurpation ARP sur le LAN (intrus -> client)        [repli du TP 1]
-  tp1-ftp-clear.pcap  authentification FTP en clair poste -> web          [repli du TP 1]
-  tp7-incident.pcap   scénario d'intrusion vu par la sonde DMZ (v-web)     [TP 7]
+  tp1-arp-demo.pcap   usurpation ARP sur le WAN (ext -> cloud-gw)         [repli du TP 1]
+  tp1-ftp-clear.pcap  authentification FTP en clair Kali -> web           [repli du TP 1]
+  tp7-incident.pcap   scénario d'intrusion vu par la sonde DMZ d'une autre PME [TP 7]
 
 Usage : python3 generer_captures.py [répertoire]   (nécessite python3-scapy)
 """
@@ -12,13 +12,16 @@ from datetime import datetime, timezone
 from scapy.all import Ether, ARP, IP, TCP, UDP, ICMP, DNS, DNSQR, DNSRR, Raw, wrpcap
 
 random.seed(3020)
-OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
+OUT = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else os.path.dirname(os.path.abspath(__file__))
 
 # Adresses et MAC du lab (identiques aux scripts d'installation)
 MAC = {
     "fw-lan": "52:54:00:30:20:02", "fw-dmz": "52:54:00:30:20:04",
     "poste": "52:54:00:aa:10:10", "client": "00:16:3e:30:20:20",
     "intrus": "00:16:3e:30:20:66", "web": "00:16:3e:30:20:30",
+    # environnement Hexceos (cartes Proxmox bc:24:11)
+    "kali-lan": "bc:24:11:4c:10:10", "fw-lan-hx": "bc:24:11:36:d5:ec", "fw-wan": "bc:24:11:cf:ce:66",
+    "cloud-gw": "bc:24:11:7a:00:30", "ext": "bc:24:11:7a:00:40",
 }
 BCAST = "ff:ff:ff:ff:ff:ff"
 
@@ -78,7 +81,8 @@ class Flux:
 # --------------------------------------------------------------------------
 def tp1_arp():
     p, t = [], ts("2026-11-23 09:41:00")
-    C, I, G = ("10.1.10.20", MAC["client"]), ("10.1.10.66", MAC["intrus"]), ("10.1.10.1", MAC["fw-lan"])
+    # victime cloud-gw, usurpateur ext, « passerelle » usurpée = WAN de pfSense
+    C, I, G = ("10.10.0.30", MAC["cloud-gw"]), ("10.10.0.40", MAC["ext"]), ("10.10.0.20", MAC["fw-wan"])
 
     def add(pk, dt):
         nonlocal t
@@ -112,7 +116,7 @@ def tp1_arp():
 
 def tp1_ftp():
     p = []
-    f = Flux(p, MAC["poste"], MAC["fw-lan"], "10.1.10.10", "10.1.30.10", 51544, 21, ts("2026-11-23 09:52:10")).ouvrir()
+    f = Flux(p, MAC["kali-lan"], MAC["fw-lan-hx"], "10.1.10.10", "10.1.30.10", 51544, 21, ts("2026-11-23 09:52:10")).ouvrir()
     for cli, msg in [
         (False, "220 (vsFTPd 3.0.5)\r\n"), (True, "USER ftpdemo\r\n"), (False, "331 Please specify the password.\r\n"),
         (True, "PASS ftpdemo123\r\n"), (False, "230 Login successful.\r\n"), (True, "SYST\r\n"),
@@ -247,5 +251,7 @@ def tp7_incident():
 
 
 if __name__ == "__main__":
-    tp1_arp(); tp1_ftp(); tp7_incident()
+    tp1_arp(); tp1_ftp()
+    if "--tp7" in sys.argv:  # la capture du TP 7 est celle d'une autre PME : inchangée par défaut
+        tp7_incident()
     print("captures écrites dans", OUT)

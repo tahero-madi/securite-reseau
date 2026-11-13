@@ -6,7 +6,7 @@
 
 ## Mise en situation
 
-Vous intervenez comme auditeur sur le système d'information d'une PME, reproduit par votre laboratoire. Le **mandat** `~/TP/mandat-audit-TP8.pdf` (à lire et signer) vous autorise à auditer les réseaux `10.1.0.0/16`, la DMZ, le VPC et l'« Internet simulé » `203.0.113.0/24` de votre laboratoire, en boîte blanche (vous avez accès aux configurations). Actions destructrices interdites. Vous disposez de 1 h 30 pour auditer et rédiger.
+Vous intervenez comme auditeur sur le système d'information d'une PME, reproduit par votre laboratoire. Le **mandat** `~/TP/mandat-audit-TP8.pdf` (à lire et signer) vous autorise à auditer vos six machines : les réseaux LAN, SRV et DMZ, le VPC, et sur l'« Internet simulé » les adresses 10.10.0.20 (pfSense), 10.10.0.30 (cloud-gw) et 10.10.0.40 (ext), en boîte blanche (vous avez accès aux configurations). L'infrastructure de la plateforme (10.10.0.1, les adresses en .254) est **hors périmètre** : elle peut être documentée, pas testée. Actions destructrices interdites. Vous disposez de 1 h 30 pour auditer et rédiger.
 
 ## Partie A — Collecte et cartographie (15 min)
 
@@ -26,6 +26,7 @@ Vous intervenez comme auditeur sur le système d'information d'une PME, reprodui
 | Interconnexion cloud chiffrée et filtrée | | |
 | Journalisation centralisée et horodatée | | |
 | IPv6 pris en compte ou neutralisé | | |
+| Aucun chemin ne contourne le pare-feu (équipements tiers présents dans les zones ?) | | |
 
 ## Partie C — Audit de configuration (25 min)
 
@@ -39,12 +40,28 @@ Vous intervenez comme auditeur sur le système d'information d'une PME, reprodui
 
 ## Partie D — Vérification active (15 min)
 
-4. Rejouez un scan ciblé depuis **l'extérieur** (`ssh stagiaire@203.0.113.31` puis `sudo nmap -sS -sV 203.0.113.11`, ou `testssl.sh https://203.0.113.11`) et depuis **le LAN** (Greenbone ou `nmap --script vuln` depuis le poste). Vérifiez des **chemins d'isolation** censés être fermés : `web → srv-int:22`, `client → srv-int:22`, `client → https://10.1.10.1` (GUI pfSense). Confirmez l'exposition réelle du service publié (seul 443 depuis `ext`). N'oubliez pas les services d'infrastructure : `snmpwalk -v2c -c public 10.1.30.10 system` (communauté par défaut ?) et `ldapsearch -x -H ldap://10.1.20.10 -b dc=lab,dc=local uid` (lecture anonyme de l'annuaire ?).
+4. Rejouez un scan ciblé depuis **l'extérieur** (`ssh formation@10.10.0.40` puis `sudo nmap -sS -sV 10.10.0.20`, ou `testssl.sh https://10.10.0.20`) et depuis **le LAN** (Greenbone ou `nmap --script vuln` depuis la Kali). Vérifiez des **chemins d'isolation** censés être fermés : `web → srv-int:22`, poste utilisateur → `srv-int:22` et poste utilisateur → `https://10.1.10.1` (adresse de test 10.1.10.20 sur la Kali, comme au TP 3), `ext → 10.1.30.10` (adresse privée). Confirmez l'exposition réelle du service publié (seul 443 depuis `ext`). N'oubliez pas les services d'infrastructure : `snmpwalk -v2c -c public 10.1.30.10 system` (communauté par défaut ?) et `ldapsearch -x -H ldap://10.1.20.10 -b dc=lab,dc=local uid` (lecture anonyme de l'annuaire ?).
+
+5. **Avec l'accord du formateur**, vérifiez si l'équipement en .254 découvert au TP 1 permet de contourner pfSense. Le flux `web → srv-int:22` est refusé par pfSense. Ajoutez des routes **temporaires**, limitées à ces deux adresses, qui passent par cet équipement dans les deux sens, testez, puis retirez-les aussitôt :
+
+```bash
+# sur srv-int (dans un premier terminal)
+sudo ip route add 10.1.30.10/32 via 10.1.20.254
+# sur web (dans un second terminal)
+sudo ip route add 10.1.20.10/32 via 10.1.30.254
+nc -vz -w3 10.1.20.10 22
+traceroute -n 10.1.20.10
+sudo ip route del 10.1.20.10/32 via 10.1.30.254
+# sur srv-int
+sudo ip route del 10.1.30.10/32 via 10.1.20.254
+```
+
+Qu'en concluez-vous sur la segmentation réelle de l'architecture, et qui est responsable de ce point ?
 
 ## Partie E — Cotation et rapport (20 min)
 
-5. Pour chaque constat, renseignez : titre, **criticité** (Critique/Majeure/Mineure/Observation), description, **preuve**, référentiel associé (ISO 27002:2022, PCI DSS v4.0.1, guide ANSSI…), **recommandation actionnable**, effort estimé.
-6. Rédigez `rapport-audit` :
+6. Pour chaque constat, renseignez : titre, **criticité** (Critique/Majeure/Mineure/Observation), description, **preuve**, référentiel associé (ISO 27002:2022, PCI DSS v4.0.1, guide ANSSI…), **recommandation actionnable**, effort estimé.
+7. Rédigez `rapport-audit` :
    - **Synthèse pour la direction** (½ page, sans jargon) : niveau global, 3 risques majeurs, priorités ;
    - **Contexte et périmètre** (et limites) ;
    - **Constats détaillés** triés par criticité (avec preuves) ;
@@ -53,7 +70,7 @@ Vous intervenez comme auditeur sur le système d'information d'une PME, reprodui
 
 > **Défi ★.** Reliez chacun de vos constats majeurs à une ligne précise de PCI DSS v4.0.1 et d'ISO/IEC 27002:2022, et indiquez si la segmentation de votre lab permettrait de réduire un périmètre « CDE ». Discutez de ce que NIS 2 ajouterait en termes d'obligations.
 
-**Livrable** : `rapport-audit` complet. Restitution orale de 5 minutes par apprenant (synthèse + top 3 des recommandations) si le temps le permet.
+**Livrable** (dans `~/livrables`) : `rapport-audit` complet. Restitution orale de 5 minutes par apprenant (synthèse + top 3 des recommandations) si le temps le permet.
 
 ## Questions de validation
 

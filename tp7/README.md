@@ -2,11 +2,11 @@
 
 **Jour 4, 09:40 · 2 h 20, pause incluse.** Objectifs : centraliser les journaux (pfSense + serveurs → rsyslog) ; superviser avec Zabbix (dont SNMPv3) ; analyser une capture d'intrusion avec Wireshark ; rédiger une fiche d'incident.
 
-**Prérequis** : module 7, TP précédents. **Livrable** : preuve de centralisation des journaux, un tableau de bord / déclencheur Zabbix fonctionnel, une `fiche-incident` complétée à partir de la capture fournie.
+**Prérequis** : module 7, TP précédents. **Livrable** (dans `~/livrables`) : preuve de centralisation des journaux, un tableau de bord / déclencheur Zabbix fonctionnel, une `fiche-incident` complétée à partir de la capture fournie.
 
 ## Partie A — Journalisation centralisée (30 min)
 
-1. Sur `srv-int` (`ssh stagiaire@10.1.20.10`), le service **rsyslog** joue le collecteur central : il range les messages reçus dans un fichier par machine, sous `/var/log/remote/`. Vérifiez qu'il écoute (UDP et TCP 514 ; TLS 6514 en défi) :
+1. Sur `srv-int` (`ssh formation@10.1.20.10`), le service **rsyslog** joue le collecteur central : il range les messages reçus dans un fichier par machine, sous `/var/log/remote/`. Vérifiez qu'il écoute (UDP et TCP 514 ; TLS 6514 en défi) :
 
 ```bash
 sudo ss -tulnp | grep -E '514|6514'
@@ -29,13 +29,13 @@ sudo tail -f /var/log/remote/*.log
 
 Montrez qu'un refus pfSense et un événement serveur apparaissent, horodatés, au même endroit.
 
-> **Horloge.** Vérifiez que toutes les machines sont à l'heure (NTP) et en UTC. Un écart d'horloge rend la corrélation fausse : faites `date -u` sur deux machines et comparez. Dans ce laboratoire, les conteneurs partagent l'horloge de la VM (toujours cohérents) ; pfSense a sa propre horloge, synchronisée par NTP : vérifiez-la dans *Status → NTP*.
+> **Horloge.** Vérifiez que toutes les machines sont à l'heure (NTP) et en UTC. Un écart d'horloge rend la corrélation fausse. Sur chaque machine Linux : `timedatectl` (ligne *System clock synchronized: yes*) ; `srv-int` et `web` prennent l'heure sur pfSense, qui la prend lui-même sur Internet : vérifiez-la dans *Status → NTP*. Si une machine n'est pas synchronisée, vérifiez que votre matrice du TP 3 autorise bien NTP (UDP 123) vers pfSense.
 
 ## Partie B — Supervision Zabbix (35 min)
 
-5. Ouvrez l'interface Zabbix, hébergée sur votre poste : `http://127.0.0.1:8080` (compte `Admin` / `zabbix`). Changez le mot de passe `Admin`. Comme Greenbone, le serveur Zabbix est vu du réseau comme le poste `10.1.10.10`.
-6. **SNMPv3 sur pfSense** : le service SNMP intégré de pfSense ne parle que v1/v2c. Installez le paquet **NET-SNMP** (*System → Package Manager*), puis dans *Services → SNMP (NET-SNMP)* créez un utilisateur v3 dédié, niveau *authPriv*, SHA + AES, en lecture seule ; limitez l'écoute à l'interface LAN et l'accès à l'adresse du superviseur `10.1.10.10`. Ne laissez aucune communauté v1/v2c active.
-7. Dans Zabbix : créez un *Host* `fw`, interface SNMP (v3, mêmes paramètres), associez un template SNMP. Vérifiez la remontée (interfaces, trafic). Créez un *Host* nommé exactement `srv-int` (le nom déclaré dans la configuration de son agent), interface agent `10.1.20.10:10050`, template *Linux by Zabbix agent active*. Deux flux sont nécessaires à travers pfSense : poste → srv-int TCP 10050 (interrogation) et srv-int → poste `10.1.10.10` TCP 10051 (agent actif). Ajoutez-les à vos règles si le TP 3 les a fermés.
+5. Ouvrez l'interface Zabbix, hébergée sur votre Kali : `http://127.0.0.1:8080` (compte `Admin` / `zabbix`). Changez le mot de passe `Admin`. Comme Greenbone, le serveur Zabbix est vu du réseau comme le poste `10.1.10.10`.
+6. **SNMPv3 sur pfSense** : le service SNMP intégré de pfSense ne parle que v1/v2c. Installez le paquet **NET-SNMP** (*System → Package Manager*), puis dans *Services → SNMP (NET-SNMP)* créez un utilisateur v3 dédié, niveau *authPriv*, SHA + AES, en lecture seule ; limitez l'écoute à l'interface LAN et l'accès à l'adresse du superviseur `10.1.10.10`. Ne laissez aucune communauté v1/v2c active. Côté filtrage, autorisez sur l'interface LAN `H_poste_admin → LAN address` en UDP 161. Testez depuis la Kali : `snmpwalk -v3 -l authPriv -u <utilisateur> -a SHA -A <mdp> -x AES -X <mdp> 10.1.10.1 system`.
+7. Dans Zabbix : créez un *Host* `fw`, interface SNMP (v3, mêmes paramètres), associez un template SNMP. Vérifiez la remontée (interfaces, trafic). Créez un *Host* nommé exactement `srv-int` (le nom déclaré dans la configuration de son agent), interface agent `10.1.20.10:10050`, template *Linux by Zabbix agent active*. Deux flux sont nécessaires à travers pfSense : Kali → srv-int TCP 10050 (interrogation) et srv-int → Kali `10.1.10.10` TCP 10051 (agent actif). Ajoutez-les à vos règles si le TP 3 les a fermés.
 8. Créez un **trigger** utile pour la sécurité : par exemple, surveillance du log des échecs d'authentification (item de type *Zabbix agent (active)*, clé `log[/var/log/auth.log,"Failed password"]`, type d'information *Log*) qui déclenche une alerte au-delà d'un seuil, ou l'alerte « interface down », ou « nouvel hôte détecté ».
 9. Provoquez la condition (plusieurs `ssh` en échec vers `srv-int`) et vérifiez le passage du trigger en *Problem*.
 
@@ -58,7 +58,7 @@ La capture `~/TP/tp7-incident.pcap` a été prise par la **sonde de la DMZ** (po
 
 13. Rédigez `fiche-incident` selon le modèle du module 7 : identifiant/date, détection, périmètre (hôtes, données), **chronologie horodatée**, techniques ATT&CK, actions de confinement proposées (quelles règles pare-feu ? quel isolement ?), éradication, rétablissement, indicateurs de compromission relevés (IP, domaines, URI), et obligations de notification éventuelles.
 
-**Livrable** : preuve de centralisation (capture d'écran des logs agrégés), trigger Zabbix en *Problem*, `fiche-incident`.
+**Livrable** (dans `~/livrables`) : preuve de centralisation (capture d'écran des logs agrégés), trigger Zabbix en *Problem*, `fiche-incident`.
 
 ## Questions de validation
 

@@ -4,34 +4,44 @@
 # Les paquets de service sont pris dans la version de sortie d'Ubuntu 24.04 (sans les
 # mises à jour) pour que le scan authentifié du TP 2 trouve des correctifs manquants.
 set -Eeuo pipefail
-trap 'echo "[KO] web ligne $LINENO : $BASH_COMMAND" >&2' ERR
-. /root/lab.conf
+trap 'echo "[KO] web, ligne $LINENO : $BASH_COMMAND"' ERR
+. ./lab.conf
 export DEBIAN_FRONTEND=noninteractive
+echo "== web"
 
-PAQUETS="nginx php8.3-fpm php8.3-mysql php8.3-gd mariadb-server vsftpd inetutils-telnetd openbsd-inetd snmpd git xz-utils jq"
+PAQUETS="nginx php8.3-fpm php8.3-mysql php8.3-gd mariadb-server vsftpd inetutils-telnetd openbsd-inetd snmpd git xz-utils"
 
 # ---------- Paquets « en retard » ----------
 SRC=/etc/apt/sources.list.d/ubuntu.sources
-cp $SRC /root/ubuntu.sources.orig
-cat > $SRC <<'EOF'
+if [ -f $SRC ] && ! dpkg -s nginx >/dev/null 2>&1; then
+  cp $SRC /root/ubuntu.sources.orig
+  cat > $SRC <<'EOF'
 Types: deb
 URIs: http://archive.ubuntu.com/ubuntu/
 Suites: noble
 Components: main universe restricted multiverse
 Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
 EOF
-apt-get update -q
-if ! apt-get install -y -q $PAQUETS; then
-  echo "[!!] installation depuis la version de sortie impossible : installation à jour"
-  cp /root/ubuntu.sources.orig $SRC; apt-get update -q; apt-get install -y -q $PAQUETS
+  apt-get update -q
+  if ! apt-get install -y -q $PAQUETS; then
+    echo "[!!] installation depuis la version de sortie impossible : installation à jour"
+    cp /root/ubuntu.sources.orig $SRC; apt-get update -q; apt-get install -y -q $PAQUETS
+  fi
+  cp /root/ubuntu.sources.orig $SRC
+  apt-get update -q   # les mises à jour sont visibles mais NON appliquées (remédiation du TP 2)
+else
+  apt-get install -y -q $PAQUETS
 fi
-cp /root/ubuntu.sources.orig $SRC
-apt-get update -q   # les mises à jour sont visibles mais NON appliquées (remédiation TP 2)
+echo "[OK] paquets de service (versions de sortie d'Ubuntu 24.04)"
 
-# ---------- nginx + PHP ----------
+# ---------- nginx + PHP (certificat autosigné : constat d'audit) ----------
 install -d -m 755 /etc/nginx/tls
-install -m 644 /root/pki/web.crt /etc/nginx/tls/web.crt
-install -m 600 /root/pki/web.key /etc/nginx/tls/web.key
+if [ ! -f /etc/nginx/tls/web.crt ]; then
+  openssl req -x509 -newkey rsa:2048 -nodes -days 825 -subj "/O=PME/CN=web.$DOMAINE" \
+    -addext "subjectAltName=DNS:web.$DOMAINE,IP:$IP_WEB,IP:$FW_WAN" \
+    -keyout /etc/nginx/tls/web.key -out /etc/nginx/tls/web.crt 2>/dev/null
+  chmod 600 /etc/nginx/tls/web.key
+fi
 cat > /etc/nginx/sites-available/default <<'EOF'
 # Configuration volontairement perfectible (audit TLS du TP 8)
 server {
@@ -61,7 +71,7 @@ cat > /var/www/html/index.html <<'EOF'
 <ul><li><a href="/dvwa/">Application interne (DVWA)</a></li>
 <li>Boutique : port 3000</li></ul></html>
 EOF
-# Dépôt git oublié dans la racine web (détecté au TP 5 et dans la capture du TP 7)
+# Dépôt git oublié dans la racine web (détecté au TP 5)
 install -d /var/www/html/.git
 cat > /var/www/html/.git/config <<'EOF'
 [core]
@@ -71,6 +81,7 @@ cat > /var/www/html/.git/config <<'EOF'
 	url = https://deploy:Deploy2019!@git.lab.local/intranet.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 EOF
+echo "[OK] nginx (80, 443 avec TLS 1.0/1.1 et certificat autosigné)"
 
 # ---------- DVWA ----------
 mysql <<EOF
@@ -89,15 +100,14 @@ sed -i -e "s/\(\$_DVWA\[ 'db_server' \] *= *\).*/\1'127.0.0.1';/" \
 cd /
 chown -R www-data:www-data /var/www/html
 systemctl restart php8.3-fpm nginx
-# Création de la base DVWA (équivaut au bouton « Create / Reset Database »)
 J=$(mktemp)
 TOK=$(curl -s -c "$J" http://127.0.0.1/dvwa/setup.php | grep -oP "name='user_token' value='\K[^']+" || true)
 if [ -n "$TOK" ]; then
   curl -s -b "$J" -c "$J" --data-urlencode "create_db=Create / Reset Database" \
        --data-urlencode "user_token=$TOK" http://127.0.0.1/dvwa/setup.php >/dev/null
-  echo "[OK] base DVWA créée (connexion admin / password)"
+  echo "[OK] DVWA (http://$IP_WEB/dvwa/, admin / password)"
 else
-  echo "[!!] DVWA : ouvrir http://10.1.30.10/dvwa/setup.php et cliquer « Create / Reset Database »"
+  echo "[!!] DVWA : ouvrir http://$IP_WEB/dvwa/setup.php et cliquer « Create / Reset Database »"
 fi
 rm -f "$J"
 
@@ -129,7 +139,8 @@ WantedBy=multi-user.target
 EOF
   systemctl daemon-reload; systemctl enable --now juice-shop >/dev/null 2>&1
 }
-if installer_juice 22 || installer_juice 20; then echo "[OK] Juice Shop installé"
+if systemctl is-enabled juice-shop >/dev/null 2>&1; then echo "[OK] Juice Shop déjà installé"
+elif installer_juice 22 || installer_juice 20; then echo "[OK] Juice Shop (port 3000)"
 else echo "[!!] Juice Shop non installé (téléchargement impossible) : le reste du lab n'en dépend pas"; fi
 
 # ---------- Services anciens (rôle « hérité ») ----------
@@ -139,17 +150,16 @@ printf 'client;email;montant\nDupont;dupont@exemple.fr;1200\nMartin;martin@exemp
 chown ftpdemo:ftpdemo /home/ftpdemo/export-clients.csv
 sed -i -e 's/^#\?write_enable=.*/write_enable=YES/' -e 's/^#\?chroot_local_user=.*/chroot_local_user=YES/' /etc/vsftpd.conf
 grep -q '^allow_writeable_chroot' /etc/vsftpd.conf || echo 'allow_writeable_chroot=YES' >> /etc/vsftpd.conf
-systemctl enable --now vsftpd >/dev/null 2>&1; systemctl restart vsftpd
+systemctl enable vsftpd >/dev/null 2>&1; systemctl restart vsftpd
 grep -q '^telnet' /etc/inetd.conf || echo 'telnet stream tcp nowait root /usr/sbin/tcpd /usr/sbin/telnetd' >> /etc/inetd.conf
-systemctl enable --now openbsd-inetd >/dev/null 2>&1; systemctl restart openbsd-inetd
-# SNMP v2c avec communauté « public » (constat d'audit)
+systemctl enable openbsd-inetd >/dev/null 2>&1; systemctl restart openbsd-inetd
 cat > /etc/snmp/snmpd.conf <<'EOF'
 agentAddress udp:161
 rocommunity public default
 sysLocation DMZ - salle serveurs
 sysContact admin@lab.local
 EOF
-systemctl enable --now snmpd >/dev/null 2>&1; systemctl restart snmpd
+systemctl enable snmpd >/dev/null 2>&1; systemctl restart snmpd
+echo "[OK] services anciens : FTP (ftpdemo), Telnet, SNMP v2c « public »"
 
-rm -rf /root/pki
-echo "[OK] web provisionné"
+echo "[OK] web prêt"

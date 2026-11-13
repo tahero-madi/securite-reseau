@@ -15,10 +15,11 @@
 - Règles pfSense `any` ou inutilisées → Majeure/Mineure selon exposition.
 - Admin non restreinte / sans MFA → Critique/Majeure (ISO 27002 8.2, 8.5 ; PCI DSS 7, 8).
 - IPsec conforme (après TP 6) → point positif à valoriser.
+- **Équipement de l'hébergeur présent dans toutes les zones (.254), capable de router entre elles** : avec deux routes temporaires, `web` joint `srv-int:22` sans passer par pfSense (`traceroute` : un seul saut, 10.1.30.254). La segmentation repose donc sur la seule configuration des routes de chaque machine → Majeure. Recommandation : exiger de l'hébergeur des réseaux réellement isolés en couche 3 (ou un filtrage sur son routeur), à défaut un filtrage local sur chaque serveur (nftables) et une surveillance des tables de routage ; point contractuel à inscrire dans la convention de service (responsabilité partagée). Référentiels : ISO 27002 8.22 (cloisonnement des réseaux), 5.21-5.22 (sécurité dans la chaîne d'approvisionnement et services des fournisseurs), PCI DSS 1.2 et 11.4.5 (test de la segmentation).
 
-**Attendus de rédaction.** Distinguer fait / risque / recommandation ; preuve systématique (extrait de scan, de config, capture) ; recommandations concrètes (« désactiver SNMPv2c sur fw, n'autoriser SNMPv3 authPriv que depuis 10.1.20.10 ») ; synthèse dirigeants sans jargon ; tri par criticité + effort. Pénaliser les rapports « copier-coller de scanner » sans priorisation ni preuve.
+**Attendus de rédaction.** Distinguer fait / risque / recommandation ; preuve systématique (extrait de scan, de config, capture) ; recommandations concrètes (« désactiver SNMP v2c sur web, n'autoriser SNMPv3 authPriv que depuis 10.1.10.10 ») ; synthèse dirigeants sans jargon ; tri par criticité + effort. Pénaliser les rapports « copier-coller de scanner » sans priorisation ni preuve.
 
-**Vérification active.** Le test d'un chemin censé fermé (`web → srv-int`) est le réflexe clé : la segmentation se prouve, elle ne se présume pas (lien PCI DSS 11.4.x sur le test de segmentation).
+**Vérification active.** Depuis `ext`, seul 443 doit répondre sur 10.10.0.20 ; `ext → 10.1.30.10` doit être refusé si la publication est en *Filter rule association* = Pass (TP 3). Le test d'un chemin censé fermé (`web → srv-int`) est le réflexe clé : la segmentation se prouve, elle ne se présume pas (lien PCI DSS 11.4.x sur le test de segmentation).
 
 **Questions.** 1 : le constat est le fait observé (prouvé) ; le risque est la conséquence possible (vraisemblance × impact) ; la recommandation est l'action corrective concrète. 2 : une segmentation documentée mais mal filtrée laisse des chemins ouverts ; seul le test révèle l'écart entre schéma et réalité. 3 : réponse individuelle — vérifier la cohérence constat ↔ preuve ↔ référentiel.
 
