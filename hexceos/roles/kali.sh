@@ -149,6 +149,7 @@ else
 fi
 GSA_URL=http://127.0.0.1:9392
 for i in $(seq 1 30); do
+  if [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/ || true)" != 000 ]; then GSA_URL=http://127.0.0.1; break; fi
   if [ "$(curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1/ || true)" != 000 ]; then GSA_URL=https://127.0.0.1; break; fi
   if [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9392/ || true)" != 000 ]; then break; fi
   sleep 5
@@ -176,6 +177,7 @@ EOF
 for f in cartographie.md matrice-risques.md; do
   [ -e "$H/livrables/$f" ] || curl -fsSL -o "$H/livrables/$f" "$LAB_BASE/tp1/modeles/$f" || true
 done
+[ -e "$H/livrables/rapport-vulns.md" ] || curl -fsSL -o "$H/livrables/rapport-vulns.md" "$LAB_BASE/tp2/modeles/rapport-vulns.md" || true
 chown -R "$U:$U" "$T" "$H/pki" "$H/livrables"
 echo "[OK] fichiers de TP dans $T (captures, mandat, identifiants)"
 

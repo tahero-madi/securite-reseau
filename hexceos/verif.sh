@@ -51,7 +51,8 @@ main() {
   echo "== Outils du poste"
   if docker compose version >/dev/null 2>&1 || sudo -n docker compose version >/dev/null 2>&1; then ok "docker compose"; else ko "docker compose absent"; fi
   [ "$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1:8080/ || true)" != 000 ] && ok "Zabbix http://127.0.0.1:8080" || ko "Zabbix ne répond pas"
-  if [ "$(curl -sk -o /dev/null -m 5 -w '%{http_code}' https://127.0.0.1/ || true)" != 000 ]; then ok "Greenbone https://127.0.0.1"
+  if [ "$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1/ || true)" != 000 ]; then ok "Greenbone http://127.0.0.1"
+  elif [ "$(curl -sk -o /dev/null -m 5 -w '%{http_code}' https://127.0.0.1/ || true)" != 000 ]; then ok "Greenbone https://127.0.0.1"
   elif [ "$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1:9392/ || true)" != 000 ]; then ok "Greenbone http://127.0.0.1:9392"
   else ko "Greenbone (GSA) ne répond pas"; fi
   if [ -f /var/lib/lab-greenbone-mdp.ok ]; then ok "mot de passe admin de Greenbone positionné"
