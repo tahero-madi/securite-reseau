@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 trap 'echo "[KO] ext, ligne $LINENO : $BASH_COMMAND"' ERR
 . ./lab.conf
-export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l  # pas de redémarrage automatique de services
 echo "== ext"
 apt-get install -y -q nmap testssl.sh ssh-audit dsniff hping3 snmp ldap-utils
 # Debian/Kali/Ubuntu installent la commande sous le nom « testssl » : on garde aussi « testssl.sh »

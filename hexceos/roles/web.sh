@@ -6,7 +6,7 @@
 set -Eeuo pipefail
 trap 'echo "[KO] web, ligne $LINENO : $BASH_COMMAND"' ERR
 . ./lab.conf
-export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l  # pas de redémarrage automatique de services
 echo "== web"
 
 PAQUETS="nginx php8.3-fpm php8.3-mysql php8.3-gd mariadb-server vsftpd inetutils-telnetd openbsd-inetd snmpd git xz-utils"

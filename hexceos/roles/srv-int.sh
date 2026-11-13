@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 trap 'echo "[KO] srv-int, ligne $LINENO : $BASH_COMMAND"' ERR
 . ./lab.conf
-export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l  # pas de redémarrage automatique de services
 echo "== srv-int"
 U=$LAB_USER
 

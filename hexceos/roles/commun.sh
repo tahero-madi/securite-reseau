@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 trap 'echo "[KO] socle commun, ligne $LINENO : $BASH_COMMAND"' ERR
 . ./lab.conf
-export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l  # pas de redémarrage automatique de services
 echo "== Socle commun ($ROLE, utilisateur $LAB_USER)"
 
 # Pas de mises à jour automatiques pendant la formation (état maîtrisé, pas de verrou apt)

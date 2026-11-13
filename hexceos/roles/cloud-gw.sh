@@ -5,7 +5,7 @@
 set -Eeuo pipefail
 trap 'echo "[KO] cloud-gw, ligne $LINENO : $BASH_COMMAND"' ERR
 . ./lab.conf
-export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l  # pas de redémarrage automatique de services
 echo "== cloud-gw"
 
 apt-get install -y -q strongswan-swanctl charon-systemd nftables nginx ulogd2 arpwatch

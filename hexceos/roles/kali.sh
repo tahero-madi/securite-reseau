@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 trap 'echo "[KO] kali, ligne $LINENO : $BASH_COMMAND"' ERR
 . ./lab.conf
-export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l  # pas de redémarrage automatique de services
 echo "== Kali"
 U=$LAB_USER
 H=$(getent passwd "$U" | cut -d: -f6)
