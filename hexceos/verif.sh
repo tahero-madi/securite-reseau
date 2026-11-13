@@ -54,8 +54,11 @@ main() {
   if [ "$(curl -sk -o /dev/null -m 5 -w '%{http_code}' https://127.0.0.1/ || true)" != 000 ]; then ok "Greenbone https://127.0.0.1"
   elif [ "$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1:9392/ || true)" != 000 ]; then ok "Greenbone http://127.0.0.1:9392"
   else ko "Greenbone (GSA) ne répond pas"; fi
+  export PATH="$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin"
   for o in nmap wireshark arpwatch arpspoof radtest testssl.sh ssh-audit snmpwalk ftp; do
-    command -v $o >/dev/null && ok "$o" || avert "$o absent"
+    if command -v $o >/dev/null; then ok "$o ($(command -v $o))"
+    elif [ $o = testssl.sh ] && command -v testssl >/dev/null; then avert "testssl.sh absent, mais testssl présent : sudo ln -sf $(command -v testssl) /usr/local/bin/testssl.sh"
+    else avert "$o absent"; fi
   done
   # Les fichiers sont dans le dossier de l'utilisateur, même si le script est lancé avec sudo
   HU=$HOME
