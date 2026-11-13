@@ -1,0 +1,40 @@
+# Zabbix 7.0 LTS pour le lab 3-020 (sur la VM hôte = le poste, 10.1.10.10)
+#   Interface web : http://127.0.0.1:8080  (Admin / zabbix, à changer au TP 7)
+#   Agents actifs : 10.1.10.10:10051 (joignable depuis les zones via pfSense)
+name: zabbix
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${PW_ZABBIX_DB}
+      POSTGRES_DB: zabbix
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:ubuntu-7.0-latest
+    restart: unless-stopped
+    depends_on: [postgres]
+    environment:
+      DB_SERVER_HOST: postgres
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${PW_ZABBIX_DB}
+      POSTGRES_DB: zabbix
+    ports: ["10.1.10.10:10051:10051"]
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:ubuntu-7.0-latest
+    restart: unless-stopped
+    depends_on: [zabbix-server]
+    environment:
+      DB_SERVER_HOST: postgres
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${PW_ZABBIX_DB}
+      POSTGRES_DB: zabbix
+      ZBX_SERVER_HOST: zabbix-server
+      PHP_TZ: Europe/Paris
+    ports: ["127.0.0.1:8080:8080"]
+
+volumes:
+  pgdata:

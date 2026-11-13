@@ -1,0 +1,7 @@
+# Livrables et captures produits pendant les TP
+livrables/
+*.pcapng
+
+# Python
+__pycache__/
+*.pyc
