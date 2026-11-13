@@ -57,6 +57,8 @@ curl -fsSL https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/he
 | cloud-gw | strongSwan, nftables, ulogd2, « VPC » 10.101.1.1, service web « cloud », arpwatch | 2 à 5 min |
 | ext | nmap, testssl.sh, ssh-audit, arpspoof, hping3, snmpwalk | 2 min |
 
+Sur la Kali, le mot de passe `admin` de Greenbone ne peut être posé qu'une fois gvmd disponible, ce qui peut prendre plus d'une heure : le script programme un réessai automatique toutes les 2 minutes (en attendant, le compte est `admin` / `admin`). Pour une Kali installée avant ce mécanisme : `curl -fsSL https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/hexceos/greenbone-mdp.sh | sudo bash`.
+
 Commencez par la **Kali** : le flux de Greenbone se charge en arrière-plan pendant que vous préparez les autres VM. Après l'installation, fermez puis rouvrez la session de la Kali (groupes docker et wireshark).
 
 Le journal complet est dans `/var/log/lab-prep.log`. Le script peut être relancé : il reprend ce qui manque.

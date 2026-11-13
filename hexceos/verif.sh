@@ -54,6 +54,9 @@ main() {
   if [ "$(curl -sk -o /dev/null -m 5 -w '%{http_code}' https://127.0.0.1/ || true)" != 000 ]; then ok "Greenbone https://127.0.0.1"
   elif [ "$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1:9392/ || true)" != 000 ]; then ok "Greenbone http://127.0.0.1:9392"
   else ko "Greenbone (GSA) ne répond pas"; fi
+  if [ -f /var/lib/lab-greenbone-mdp.ok ]; then ok "mot de passe admin de Greenbone positionné"
+  elif systemctl is-active -q lab-greenbone-mdp.timer 2>/dev/null; then avert "mot de passe admin de Greenbone pas encore positionné (réessai automatique ; en attendant : admin / admin)"
+  else avert "mot de passe admin de Greenbone : à vérifier (connexion admin / Greenbone-3020)"; fi
   export PATH="$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin"
   for o in nmap wireshark arpwatch arpspoof radtest testssl.sh ssh-audit snmpwalk ftp; do
     if command -v $o >/dev/null; then ok "$o ($(command -v $o))"

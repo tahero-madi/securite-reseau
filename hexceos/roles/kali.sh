@@ -108,20 +108,44 @@ echo "== Greenbone : téléchargement des images (10 à 30 minutes selon le déb
 "${GBC[@]}" pull -q
 "${GBC[@]}" up -d
 admin_present() { "${GBC[@]}" exec -T -u gvmd gvmd gvmd --get-users 2>/dev/null | grep -qx admin; }
-echo "== Greenbone : attente du gestionnaire gvmd (jusqu'à 30 minutes)"
-for i in $(seq 1 180); do admin_present && break; sleep 10; done
-MDP_OK=0
-for i in $(seq 1 10); do
-  if admin_present; then
-    "${GBC[@]}" exec -T -u gvmd gvmd gvmd --user=admin --new-password="$PW_GREENBONE" >/dev/null 2>&1 && { MDP_OK=1; break; }
-  else
-    "${GBC[@]}" exec -T -u gvmd gvmd gvmd --create-user=admin --password="$PW_GREENBONE" >/dev/null 2>&1 && { MDP_OK=1; break; }
-  fi
-  sleep 30
-done
-if [ $MDP_OK -eq 0 ]; then
-  echo "[!!] mot de passe admin de Greenbone non positionné. Plus tard, quand gvmd répond :"
-  echo "[!!]   sudo docker compose -p greenbone-community-edition -f $GB/compose.yaml exec -u gvmd gvmd gvmd --user=admin --new-password='$PW_GREENBONE'"
+echo "== Greenbone : attente du gestionnaire gvmd (jusqu'à 15 minutes)"
+for i in $(seq 1 90); do admin_present && break; sleep 10; done
+# Mot de passe admin : gvmd peut mettre plus d'une heure à être disponible pendant le premier
+# chargement du flux. Un service réessaie toutes les 2 minutes jusqu'à réussir, puis se désactive.
+cat > /usr/local/sbin/lab-greenbone-mdp <<SCRIPT
+#!/bin/bash
+# Positionne le mot de passe admin de Greenbone (lab 3-020), puis désactive son minuteur.
+docker compose -f $GB/compose.yaml -p greenbone-community-edition exec -T -u gvmd gvmd \\
+  gvmd --user=admin --new-password='$PW_GREENBONE' || exit 1
+touch /var/lib/lab-greenbone-mdp.ok
+systemctl disable --now lab-greenbone-mdp.timer >/dev/null 2>&1 || true
+echo "mot de passe admin de Greenbone positionné"
+SCRIPT
+chmod 700 /usr/local/sbin/lab-greenbone-mdp
+cat > /etc/systemd/system/lab-greenbone-mdp.service <<'UNIT'
+[Unit]
+Description=Lab 3-020 : mot de passe admin de Greenbone
+After=docker.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lab-greenbone-mdp
+UNIT
+cat > /etc/systemd/system/lab-greenbone-mdp.timer <<'UNIT'
+[Unit]
+Description=Lab 3-020 : réessaie de positionner le mot de passe admin de Greenbone
+[Timer]
+OnActiveSec=10s
+OnBootSec=2min
+OnUnitInactiveSec=2min
+[Install]
+WantedBy=timers.target
+UNIT
+systemctl daemon-reload
+if [ -f /var/lib/lab-greenbone-mdp.ok ] || /usr/local/sbin/lab-greenbone-mdp >/dev/null 2>&1; then
+  echo "[OK] mot de passe admin de Greenbone positionné"
+else
+  systemctl enable --now lab-greenbone-mdp.timer >/dev/null 2>&1
+  echo "[!!] gvmd pas encore prêt : le mot de passe admin de Greenbone sera positionné automatiquement (réessai toutes les 2 min ; en attendant : admin / admin)"
 fi
 GSA_URL=http://127.0.0.1:9392
 for i in $(seq 1 30); do
