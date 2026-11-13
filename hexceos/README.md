@@ -73,7 +73,7 @@ Puis, dans Greenbone (adresse dans `~/TP/identifiants-lab.txt`), *Administration
 
 ## Étape 5 — Instantané
 
-Redémarrez les 6 VM, relancez `verif.sh`, puis prenez un instantané de chaque VM (par exemple « depart-formation »). C'est l'état de départ de chaque apprenant ; on y revient en cas de laboratoire cassé.
+Redémarrez les 6 VM, relancez `verif.sh`, puis prenez un instantané de chaque VM nommé **`initial`**, avec la description « NE PAS SUPPRIMER !!!!! » (les TP y font référence). C'est l'état de départ de chaque apprenant ; on y revient en cas de laboratoire cassé.
 
 ## Points de vigilance
 

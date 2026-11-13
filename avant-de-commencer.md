@@ -46,6 +46,7 @@ Le réseau WAN `10.10.0.0/24` joue **Internet**. Sa passerelle, `10.10.0.1`, app
 
 ## Habitudes à prendre
 
+- **L'instantané `initial`** (description « NE PAS SUPPRIMER !!!!! ») existe sur chacune de vos machines : c'est l'état de départ de la formation. **Ne le supprimez jamais.**
 - **Un instantané avant chaque TP** qui modifie la configuration, au moins de pfSense et des machines touchées (bouton appareil photo du portail). En cas de fausse manœuvre, revenir à l'instantané prend une minute ; mieux vaut restaurer que perdre vingt minutes.
 - **Deux terminaux** : l'un pour agir, l'autre pour observer (`tcpdump`, journaux, `arpwatch`).
 - **Copier-coller** : le plus simple est d'ouvrir l'énoncé sur GitHub dans Firefox, **sur la Kali**, et d'utiliser le bouton de copie des blocs de code.

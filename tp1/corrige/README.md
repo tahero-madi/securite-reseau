@@ -2,17 +2,36 @@
 
 > Cherchez d'abord par vous-même : ce corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP.
 
-**Partie A.** Le balayage fait apparaître `fw` (.1) sur chaque réseau, la Kali (10.1.10.10), `srv-int` (10.1.20.10), `web` (10.1.30.10)… et un hôte **non documenté en .254 sur chacun des trois réseaux**. C'est l'équipement de l'hébergeur (DHCP, DNS et routeur de la plateforme Hexceos). Bon réflexe : le noter comme écart, ne pas le balayer (hors périmètre), et se demander ce qu'il peut faire. On y reviendra au TP8 : il peut router entre les zones sans passer par le pare-feu. C'est le prétexte idéal pour parler d'inventaire des actifs, de responsabilité partagée avec un hébergeur et de contrôle d'accès au réseau (802.1X, NAC).
+**Étape 3 — découverte.** Le balayage trouve **9 hôtes** : pfSense sur chaque réseau (10.1.10.1, 10.1.20.1, 10.1.30.1), la Kali (10.1.10.10), `srv-int` (10.1.20.10), `web` (10.1.30.10)… et un hôte **non documenté en .254 sur chacun des trois réseaux**. La prédiction attendue était 6 : l'écart, ce sont ces trois .254. C'est l'équipement de l'hébergeur (DHCP, DNS et routeur de la plateforme Hexceos). Bon réflexe : le noter comme écart, ne pas le balayer (hors périmètre), et se demander ce qu'il peut faire. On y reviendra au TP8 : il peut router entre les zones sans passer par le pare-feu. C'est le prétexte idéal pour parler d'inventaire des actifs, de responsabilité partagée avec un hébergeur et de contrôle d'accès au réseau (802.1X, NAC).
 
-Services attendus :
-- `srv-int` : 22/ssh, 389/ldap, 636/ldaps, 514/tcp syslog, 10050 agent Zabbix (RADIUS 1812-1813 est en UDP : non vu par un scan TCP) ;
-- `web` : 21/ftp, 22/ssh, 23/telnet, 80, 443, 3000 (Juice Shop), et 161/udp SNMP non vu en TCP.
+Les adresses MAC (préfixe `BC:24:11`, Proxmox) ne s'affichent que pour le LAN : ARP ne traverse pas un routeur, nmap ne voit donc les MAC que sur le segment de la Kali. Seuls les hôtes présents dans `/etc/hosts` sont nommés (`fw.lab.local`, `srv-int.lab.local`…).
 
-Le `-O` demande `sudo`. Le poste passe par 10.1.10.1 pour joindre SRV et DMZ (`traceroute -n 10.1.20.10`) : il est bien un client du pare-feu. L'écart attendu avec la topologie : `web` expose bien plus de services que nécessaire pour un serveur web — c'est le cœur du risque (hôte « hérité »). NSE `ssl-cert` révèle nom d'hôte, émetteur (certificat autosigné), dates ; `http-headers` révèle les versions (bannière `nginx/1.24.0 (Ubuntu)`) → aide à la reconnaissance (ATT&CK T1595/T1592).
+**Étape 4 — services.** Résultat obtenu (environ 3 minutes) :
 
-**Partie B.** Ce qu'on doit observer :
+| Hôte | Port | nmap annonce | En réalité |
+|---|---|---|---|
+| srv-int | 22 | OpenSSH 9.6p1 Ubuntu | SSH d'administration |
+| srv-int | 389, 636 | OpenLDAP 2.2.X - 2.3.X | OpenLDAP 2.6 : **estimation fausse** de nmap |
+| srv-int | 514 | `shell?` | collecteur rsyslog en TCP ; 514/tcp est historiquement le port de `rsh`, d'où le nom |
+| web | 21 | vsftpd 3.0.5 | FTP en clair |
+| web | 22 | OpenSSH 9.6p1 Ubuntu | SSH |
+| web | 23 | `telnet` (empreinte non reconnue) | Telnet : les octets `\xff\xfb…` de l'empreinte sont la négociation Telnet |
+| web | 80, 443 | nginx 1.24.0 (Ubuntu) | serveur web |
+| web | 3000 | `ppp?` | Juice Shop : l'empreinte contient `<title>OWASP Juice Shop</title>` |
+
+Absents du balayage, et c'est instructif :
+- l'agent Zabbix de srv-int (10050/tcp) : port hors des 200 plus courants (`--top-ports 200`) ;
+- RADIUS (1812-1813/udp) sur srv-int et SNMP (161/udp) sur web : en UDP, donc invisibles pour un balayage TCP (il faudrait `-sU`).
+
+Système : nmap annonce « Linux 4.19 - 5.15 » pour srv-int et ne conclut pas pour web, alors que les deux tournent sous le noyau 6.8 d'Ubuntu 24.04. Les détections de version et de système sont des **estimations** à recouper (bannières, accès authentifié), pas des preuves. « Network Distance: 2 hops » confirme qu'un routeur (pfSense) sépare la Kali des serveurs.
+
+L'écart attendu avec la topologie : `web` expose bien plus de services que nécessaire pour un serveur web (FTP, Telnet, une seconde application sur 3000) — c'est le cœur du risque (hôte « hérité »).
+
+**Défi ★.** `http-headers` révèle la version exacte (`Server: nginx/1.24.0 (Ubuntu)`). `ssl-cert` révèle un certificat **autosigné** (émetteur = sujet), le nom interne `web.lab.local`, l'adresse interne 10.1.30.10… et **10.10.0.20**, l'adresse WAN de pfSense : le certificat trahit l'adresse de publication du service. Tout cela aide à la reconnaissance (ATT&CK T1595, T1592).
+
+**Étapes 5 et 6.** Ce qu'on doit observer (exemple réel, les MAC varient d'un environnement à l'autre : cloud-gw `bc:24:11:59:6a:dc`, ext `bc:24:11:d3:fe:6d`, pfSense WAN `bc:24:11:63:da:79`) :
 - avant : `ip neigh show 10.10.0.20` sur cloud-gw donne la MAC de pfSense ;
-- pendant : la même commande donne la MAC d'**ext** ; `arpwatch` signale `changed ethernet address 10.10.0.20` ; le `tcpdump -e` d'ext montre les requêtes ICMP de cloud-gw adressées à la MAC d'ext, puis relayées vers la MAC de pfSense ; le ping de la victime continue de répondre ;
+- pendant : la même commande donne la MAC d'**ext** ; `arpwatch` signale `changed ethernet address 10.10.0.20` ; le `tcpdump -e` d'ext montre chaque requête ICMP deux fois : `bc:24:11:59:6a:dc > bc:24:11:d3:fe:6d` (cloud-gw → ext), puis `bc:24:11:d3:fe:6d > bc:24:11:63:da:79` (ext → pfSense) ; le ping de la victime continue de répondre (réponse à la prédiction : oui, grâce au relais d'ext) ;
 - après : `arpspoof` réannonce la vraie MAC (« cleaning up and re-arping ») et la table revient.
 
 Points à faire émerger :
@@ -23,7 +42,7 @@ Points à faire émerger :
 
 **Pour le formateur.** Avant le TP, vérifiez dans un environnement que la démonstration fonctionne (le commutateur de la plateforme ne filtre pas l'usurpation) et que le WAN de chaque apprenant est isolé : depuis ext, `sudo arping -c3 -I ens18 10.10.0.20` (paquet `iputils-arping`) ne doit obtenir qu'une MAC. Si le WAN était partagé entre apprenants, faites la démonstration vous-même, sur votre environnement, en projetant l'écran. Repli : `~/TP/tp1-arp-demo.pcap` (même scénario : cloud-gw 10.10.0.30, ext 10.10.0.40 avec la MAC `bc:24:11:7a:00:40`, pfSense 10.10.0.20 avec la MAC `bc:24:11:cf:ce:66`) et `~/TP/tp1-ftp-clear.pcap`.
 
-**Partie C — matrice type attendue (extrait) :**
+**Étape 7 — matrice type attendue (extrait) :**
 
 | Bien / scénario | V | G | Niveau | Mesures | Résiduel |
 |---|---|---|---|---|---|
