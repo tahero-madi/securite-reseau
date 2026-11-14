@@ -178,6 +178,7 @@ for f in cartographie.md matrice-risques.md; do
   [ -e "$H/livrables/$f" ] || curl -fsSL -o "$H/livrables/$f" "$LAB_BASE/tp1/modeles/$f" || true
 done
 [ -e "$H/livrables/rapport-vulns.md" ] || curl -fsSL -o "$H/livrables/rapport-vulns.md" "$LAB_BASE/tp2/modeles/rapport-vulns.md" || true
+[ -e "$H/livrables/matrice-flux.md" ] || curl -fsSL -o "$H/livrables/matrice-flux.md" "$LAB_BASE/tp3/modeles/matrice-flux.md" || true
 chown -R "$U:$U" "$T" "$H/pki" "$H/livrables"
 echo "[OK] fichiers de TP dans $T (captures, mandat, identifiants)"
 
