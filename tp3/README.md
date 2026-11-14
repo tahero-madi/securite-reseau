@@ -14,7 +14,8 @@
    - **poste d'administration** (`10.1.10.10`, votre Kali) → SRV et DMZ en SSH, LDAP(S) ; et, parce qu'il héberge les outils, → SRV/DMZ pour le scanner (TP 2) et la supervision (agent Zabbix 10050) ;
    - poste d'administration → machines du WAN (`ext` 10.10.0.40, `cloud-gw` 10.10.0.30) en SSH : elles jouent des serveurs sur Internet que vous administrez ;
    - SRV → poste `10.1.10.10` en TCP 10051 (agents Zabbix actifs, TP 7) ;
-   - chaque zone → pfSense pour le **DNS** (53) et l'**heure** (NTP, UDP 123) : sans eux, plus rien ne fonctionne ;
+   - chaque zone → pfSense pour le **DNS** (53, en TCP **et** UDP) et l'**heure** (NTP, UDP 123) : sans eux, plus rien ne fonctionne ;
+   - le scanner Greenbone (sur la Kali) teste **tous** les ports de SRV et DMZ : prévoyez-lui une règle dédiée, que l'on désactivera hors des campagnes de scan ; et autorisez le ping (ICMP) depuis le poste d'administration, utile au diagnostic ;
    - DMZ → SRV **interdit** sauf un flux précis justifié (ou aucun) ;
    - SRV → Internet **interdit** sauf mises à jour ;
    - Internet (WAN) → DMZ web en 443 uniquement (publication) ;
@@ -24,7 +25,7 @@ Votre LAN ne contient qu'un poste, la Kali. Pour tester les droits d'un **poste 
 
 ## Partie B — Alias et règles (35 min)
 
-3. Créez des **alias** (*Firewall → Aliases*) pour les hôtes et groupes de ports : `H_poste_admin` (10.1.10.10), `H_web`, `H_srv_int`, `N_LAN`, `N_SRV`, `N_DMZ`, `P_web` (80,443), `P_admin` (22,443,389,636). Les alias rendent les règles lisibles et maintenables.
+3. Créez des **alias** (*Firewall → Aliases*) pour les hôtes et groupes de ports : `H_poste_admin` (10.1.10.10), `H_web`, `H_srv_int`, `N_LAN`, `N_SRV`, `N_DMZ`, `P_web` (80,443), `P_admin` (22,443,389,636), `N_PRIVE` (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, pour désigner « Internet » par `! N_PRIVE`). Les alias rendent les règles lisibles et maintenables.
 4. Sur l'interface **LAN**, créez des règles précises conformes à la matrice (une règle par ligne de matrice), puis **supprimez** les deux règles « HRA : tout autoriser ». Terminez par une règle de **blocage journalisé** `N_LAN → any` (case *Log* cochée). Ordre : les règles passantes d'abord, le blocage final ensuite.
 5. Sur l'interface **DMZ**, créez les règles : DNS et NTP vers pfSense ; `N_DMZ → N_SRV` refusé et journalisé ; `N_DMZ → any` vers Internet refusé sauf si justifié. La DMZ ne doit pas joindre le LAN. Supprimez les règles HRA.
 6. Sur l'interface **SRV**, autorisez DNS et NTP vers pfSense, SRV → mises à jour (alias de noms `archive.ubuntu.com`, `security.ubuntu.com`, `repo.zabbix.com` en 80/443), SRV → poste 10051 ; refusez le reste et journalisez. Supprimez les règles HRA.

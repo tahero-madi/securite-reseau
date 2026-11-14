@@ -10,13 +10,16 @@ Matrice type (extrait) :
 
 | # | Source | Destination | Port | Action | Justification |
 |---|---|---|---|---|---|
-| L1 | N_LAN | LAN address (pfSense) | 53, 123/udp | Pass | DNS et heure |
-| L2 | H_poste_admin | LAN address | 443, 22 | Pass | Administration de pfSense |
-| L3 | H_poste_admin | N_SRV, N_DMZ | P_admin, 10050 | Pass | Administration, scanner, supervision |
-| L4 | N_LAN | H_web | P_web | Pass | Intranet |
-| L5 | N_LAN | ! RFC1918 (Internet) | 80, 443 | Pass | Navigation |
-| L5b | H_poste_admin | 10.10.0.30, 10.10.0.40 | 22 | Pass | Administration de ext et cloud-gw (TP 5, 6, 8) |
-| L6 | N_LAN | any | any | Block + log | Refus par défaut |
+| L1 | H_poste_admin | LAN address | TCP 443, 22 | Pass | Administration de pfSense (remplace l'anti-verrouillage, étape 8) |
+| L2 | N_LAN | LAN address | TCP/UDP 53 | Pass | DNS (UDP surtout, TCP pour les grosses réponses) |
+| L3 | N_LAN | LAN address | UDP 123 | Pass | Heure (NTP) |
+| L4 | H_poste_admin | N_SRV, N_DMZ | TCP P_admin, 10050 | Pass | Administration (SSH, LDAP(S), HTTPS), supervision Zabbix |
+| L5 | H_poste_admin | N_SRV, N_DMZ | any | Pass (désactivée hors scans) | Scanner Greenbone : il teste tous les ports, TCP et UDP |
+| L6 | H_poste_admin | any | ICMP echo request | Pass | Diagnostic (ping, traceroute) et test de présence du scanner |
+| L7 | N_LAN | H_web | TCP P_web | Pass | Intranet |
+| L8 | H_poste_admin | 10.10.0.30, 10.10.0.40 | TCP 22 | Pass | Administration de ext et cloud-gw (TP 5, 6, 8) |
+| L9 | N_LAN | ! N_PRIVE (Internet) | TCP P_web | Pass | Navigation ; `N_PRIVE` = 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 |
+| L10 | N_LAN | any | any | Block + log | Refus par défaut, IPv4 et IPv6 |
 | S1 | N_SRV | SRV address | 53, 123/udp | Pass | DNS et heure |
 | S2 | H_srv_int | H_poste_admin | 10051 | Pass | Agent Zabbix actif (TP 7) |
 | S3 | N_SRV | dépôts (alias de noms) | 80, 443 | Pass | Mises à jour |
@@ -25,7 +28,7 @@ Matrice type (extrait) :
 | D2 | N_DMZ | any | any | Block + log | Refus par défaut (DMZ → SRV et DMZ → LAN compris) |
 | W1 | any | WAN address | 443 → H_web | NAT | Publication |
 
-Le flux de supervision Kali → srv-int en 10050 et le scan de Greenbone (TP 2) passent par L3. Le flux syslog web → srv-int du TP 7 viendra s'insérer avant D2 : c'est le « flux justifié » de la DMZ.
+Ordre : les services de pfSense (L1 à L3), puis l'administration (L4 à L6), puis les flux utilisateurs (L7 à L9), et le blocage journalisé en dernier. Entre règles « Pass », l'ordre ne change pas le résultat ; il compte dès qu'une règle « Block » s'intercale. Destination « LAN address » plutôt que « This Firewall (self) » : *self* désigne **toutes** les adresses de pfSense, WAN comprise. La règle L5 du scanner est volontairement large : on la désactive (icône ⊘) en dehors des campagnes de scan (TP 2, TP 8) — un scanner est un outil d'attaque. Le flux syslog web → srv-int du TP 7 viendra s'insérer avant D2 : c'est le « flux justifié » de la DMZ.
 
 **Partie B.** Erreurs classiques :
 - garder les règles HRA en plus des nouvelles : en tête de liste, elles masquent tout ;
