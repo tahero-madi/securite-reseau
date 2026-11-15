@@ -225,14 +225,27 @@ Justifiez l'ordre de traitement.
 
 **Pourquoi.** Un rapport de vulnérabilités ne sert à rien s'il n'est pas suivi de corrections. On en corrige au moins une, choisie dans votre rapport.
 
-Choisissez **une** vulnérabilité corrigeable sur `web` : un service ancien inutile à désactiver, un paquet à mettre à jour, ou une configuration à durcir. Sur **web** (`ssh formation@10.1.30.10`), selon le cas :
+Choisissez **une** vulnérabilité corrigeable sur `web`. Deux cas possibles.
+
+**Cas 1 — un correctif manquant** (scan authentifié, résultat nommé « Ubuntu: Security Advisory (USN-…) »). Ouvrez le résultat dans le rapport : la section *Detection Result* indique le paquet en cause (*Vulnerable package*), la version installée (*Installed version*) et la version qui corrige (*Fixed version*). C'est ce paquet qu'on met à jour, et rien d'autre. Sur **web** (`ssh formation@10.1.30.10`) :
 
 ```bash
 sudo apt update
-sudo apt install --only-upgrade nginx
+apt-cache policy <paquet>
+sudo apt install --only-upgrade <paquet>
+dpkg -l <paquet> | tail -1
 ```
 
-ou :
+**Ligne par ligne.**
+
+- `apt update` : met à jour la liste des versions disponibles (la machine passe par pfSense pour joindre les dépôts Ubuntu).
+- `apt-cache policy <paquet>` : affiche la version installée (*Installed*) et la version disponible (*Candidate*). La version disponible doit être supérieure ou égale à la *Fixed version* du rapport.
+- `apt install --only-upgrade <paquet>` : met à jour ce paquet, sans installer de nouveau paquet (`--only-upgrade`). Remplacez `<paquet>` par le nom relevé dans le rapport.
+- `dpkg -l <paquet> | tail -1` : affiche la version désormais installée, à noter pour le livrable.
+
+Un même avis USN peut concerner plusieurs paquets (par exemple une bibliothèque et ses outils) : mettez-les tous à jour, sinon la vulnérabilité restera signalée.
+
+**Cas 2 — un service ancien inutile** (scan non authentifié, par exemple Telnet en clair). Sur **web** :
 
 ```bash
 sudo systemctl disable --now openbsd-inetd
@@ -240,15 +253,13 @@ sudo systemctl disable --now openbsd-inetd
 
 **Ligne par ligne.**
 
-- `apt update` : met à jour la liste des versions disponibles (la machine passe par pfSense pour joindre les dépôts Ubuntu).
-- `apt install --only-upgrade nginx` : met à jour le paquet `nginx` (remplacez par le paquet de votre vulnérabilité), sans installer de nouveau paquet (`--only-upgrade`).
 - `systemctl disable --now openbsd-inetd` : arrête immédiatement (`--now`) le service qui fait tourner Telnet sur web, et l'empêche de redémarrer au prochain démarrage (`disable`).
 
 ## Étape 11 — Contre-scanner
 
 **Pourquoi.** Une correction n'est acquise que lorsqu'elle est **vérifiée**. On relance le même scan et on montre que la vulnérabilité a disparu.
 
-1. *Scans → Tasks* : cliquez sur **▶ (*Start*)** sur la ligne de `Scan-auth` (ou `Scan-non-auth` si vous avez désactivé un service). La tâche produit un nouveau rapport ; la colonne *Reports* passe à 2.
+1. *Scans → Tasks* : cliquez sur **▶ (*Start*)** sur la ligne de `Scan-auth` (cas 1) ou de `Scan-non-auth` (cas 2). La tâche produit un nouveau rapport ; la colonne *Reports* passe à 2.
 2. Une fois à **Done**, exportez le nouveau rapport en CSV : `~/livrables/tp2-contre-scan.csv`.
 
 ```bash

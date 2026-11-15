@@ -32,6 +32,8 @@ for r in lignes[:5]:
 
 Point de discussion : le tri par CVSS ignore l'exposition de la machine, la probabilité d'exploitation (EPSS) et l'exploitation avérée (KEV) ; à CVSS égal, une vulnérabilité exposée sur Internet et au KEV passe en premier.
 
+**Choisir une remédiation qui marche.** Le paquet à corriger se lit dans le résultat USN du scan authentifié (*Vulnerable package*, *Installed version*, *Fixed version*) : on ne le devine pas. `apt-cache policy` doit proposer une version au moins égale à la *Fixed version* ; sinon (correctif pas encore publié pour 24.04, ou dépôts injoignables), en choisir un autre. Pour vérifier les paquets les plus fréquents dans le rapport : `grep -o 'Vulnerable package: [^ ]*' ~/livrables/tp2-scan-auth.csv | sort | uniq -c | sort -rn | head`. Le cas 2 (Telnet) est la solution de repli toujours démonstrative.
+
 **Étapes 10 et 11.** Exemples de remédiation faciles à démontrer : `sudo apt install --only-upgrade nginx` (ou `php8.3-fpm`), désactiver Telnet (`sudo systemctl disable --now openbsd-inetd`) ou SNMP (`snmpd`), durcir `sshd_config` (si une règle de conformité le remonte), mettre à jour un paquet applicatif non critique. L'essentiel pédagogique est la **boucle** correction → contre-scan → disparition du résultat.
 
 **Questions.** 1 : il lit l'état réel des paquets installés et des correctifs via un compte, au lieu de déduire d'une bannière. 2 : vérifier manuellement (QoD faible = détection peu fiable) : confirmer l'existence du service/version, écarter le faux positif, sinon ne pas gaspiller d'effort. 3 : compte dédié, clé SSH, droits de lecture minimaux, restriction à l'IP du scanner, activation seulement pendant les fenêtres de scan, rotation du secret, journalisation.
