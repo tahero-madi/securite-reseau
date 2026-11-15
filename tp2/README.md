@@ -227,7 +227,7 @@ Justifiez l'ordre de traitement.
 
 Choisissez **une** vulnérabilité corrigeable sur `web`. Deux cas possibles.
 
-**Cas 1 — un correctif manquant** (scan authentifié, résultat nommé « Ubuntu: Security Advisory (USN-…) »). Ouvrez le résultat dans le rapport : la section *Detection Result* indique le paquet en cause (*Vulnerable package*), la version installée (*Installed version*) et la version qui corrige (*Fixed version*). C'est ce paquet qu'on met à jour, et rien d'autre. Sur **web** (`ssh formation@10.1.30.10`) :
+**Cas 1 — un correctif manquant** (scan authentifié, résultat nommé « Ubuntu: Security Advisory (USN-…) »). Ouvrez le résultat dans le rapport : son résumé (*Summary*) nomme le ou les paquets en cause (« The remote host is missing an update for the 'nginx' package(s)… ») ; la section *Detection Result*, quand elle est présente, précise la version installée et la version qui corrige. C'est ce paquet qu'on met à jour, et rien d'autre. Bon candidat sur `web` : **nginx**, cité dans une quinzaine d'avis, dont plusieurs en High. Sur **web** (`ssh formation@10.1.30.10`) :
 
 ```bash
 sudo apt update
@@ -239,21 +239,21 @@ dpkg -l <paquet> | tail -1
 **Ligne par ligne.**
 
 - `apt update` : met à jour la liste des versions disponibles (la machine passe par pfSense pour joindre les dépôts Ubuntu).
-- `apt-cache policy <paquet>` : affiche la version installée (*Installed*) et la version disponible (*Candidate*). La version disponible doit être supérieure ou égale à la *Fixed version* du rapport.
+- `apt-cache policy <paquet>` : affiche la version installée (*Installed*) et la version disponible (*Candidate*). Si les deux sont identiques, aucun correctif n'est disponible pour ce paquet (par exemple parce qu'il n'est corrigé que dans l'offre payante Ubuntu Pro) : choisissez-en un autre.
 - `apt install --only-upgrade <paquet>` : met à jour ce paquet, sans installer de nouveau paquet (`--only-upgrade`). Remplacez `<paquet>` par le nom relevé dans le rapport.
 - `dpkg -l <paquet> | tail -1` : affiche la version désormais installée, à noter pour le livrable.
 
 Un même avis USN peut concerner plusieurs paquets (par exemple une bibliothèque et ses outils) : mettez-les tous à jour, sinon la vulnérabilité restera signalée.
 
-**Cas 2 — un service ancien inutile** (scan non authentifié, par exemple Telnet en clair). Sur **web** :
+**Cas 2 — un service ancien inutile** (scan non authentifié : « FTP Unencrypted Cleartext Login »). Sur **web** :
 
 ```bash
-sudo systemctl disable --now openbsd-inetd
+sudo systemctl disable --now vsftpd
 ```
 
 **Ligne par ligne.**
 
-- `systemctl disable --now openbsd-inetd` : arrête immédiatement (`--now`) le service qui fait tourner Telnet sur web, et l'empêche de redémarrer au prochain démarrage (`disable`).
+- `systemctl disable --now vsftpd` : arrête immédiatement (`--now`) le serveur FTP de web, et l'empêche de redémarrer au prochain démarrage (`disable`). Le service ne répond plus : le résultat disparaît du contre-scan. Le paquet, lui, reste installé : ses éventuels avis USN restent signalés par le scan authentifié.
 
 ## Étape 11 — Contre-scanner
 

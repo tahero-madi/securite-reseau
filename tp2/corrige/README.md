@@ -32,7 +32,24 @@ for r in lignes[:5]:
 
 Point de discussion : le tri par CVSS ignore l'exposition de la machine, la probabilité d'exploitation (EPSS) et l'exploitation avérée (KEV) ; à CVSS égal, une vulnérabilité exposée sur Internet et au KEV passe en premier.
 
-**Choisir une remédiation qui marche.** Le paquet à corriger se lit dans le résultat USN du scan authentifié (*Vulnerable package*, *Installed version*, *Fixed version*) : on ne le devine pas. `apt-cache policy` doit proposer une version au moins égale à la *Fixed version* ; sinon (correctif pas encore publié pour 24.04, ou dépôts injoignables), en choisir un autre. Pour vérifier les paquets les plus fréquents dans le rapport : `grep -o 'Vulnerable package: [^ ]*' ~/livrables/tp2-scan-auth.csv | sort | uniq -c | sort -rn | head`. Le cas 2 (Telnet) est la solution de repli toujours démonstrative.
+**Résultats réels (essai sur la plateforme Hexceos).**
+
+*Non authentifié (web et srv-int)*, 13 résultats, aucun High :
+- web : dépôt Git accessible (« Source Control Management (SCM) Files/Folders Accessible », 5.0, ports 80 et 443), « Cleartext Transmission of Sensitive Information via HTTP » (4.8), « FTP Unencrypted Cleartext Login » (4.8), « SSL/TLS: Deprecated TLSv1.0 and TLSv1.1 » (4.3, QoD 98 %), algorithmes MAC faibles en SSH, horodatages TCP et ICMP (2.x) ;
+- srv-int : « SSL/TLS: Renegotiation DoS » sur LDAP 389 et 636 (5.0), algorithmes MAC faibles en SSH, horodatages ;
+- Telnet n'apparaît pas en tant que tel : le scan non authentifié ne le signale pas comme vulnérabilité. Et sans UDP dans la liste de ports, SNMP non plus.
+
+*Authentifié (web)*, 70 résultats, dont 56 avis Ubuntu (USN) en QoD 97 % ; sévérité maximale 9.8. Paquets les plus cités :
+- **nginx** : 17 avis, jusqu'à 8.2 (USN-8563, 8210, 8955, 8354, 8458, 8271…) ;
+- **PHP 8.3** : 7 avis, dont 4 à 9.8 ;
+- brotli, socat, libdbi-perl (9.8), pyjwt (9.1), noyau linux (8.4 et 7.8), inetutils (7.8, c'est le paquet de telnetd), net-snmp (7.5), libxml2, pcre2, zlib, mariadb, glibc, apt…
+
+**Choisir une remédiation qui marche.** Le paquet à corriger se lit dans le résultat USN : son résumé nomme le paquet (« missing an update for the 'nginx' package(s) »). Pour lister les paquets les plus cités du rapport : `grep -o "update for the '[^']*'" ~/livrables/tp2-scan-auth.csv | sort | uniq -c | sort -rn | head`. `apt-cache policy` doit proposer une version plus récente que la version installée ; sinon (correctif réservé à Ubuntu Pro pour les paquets de *universe*, ou dépôts injoignables), en choisir un autre.
+
+- **nginx** est le meilleur exemple : `sudo apt install --only-upgrade nginx` ; au contre-scan, les avis nginx disparaissent d'un coup (17 résultats, dont 10 High).
+- **PHP** : `sudo apt install --only-upgrade 'php8.3*'` (plusieurs paquets pour un même avis).
+- **Noyau** : le paquet se met à jour, mais le correctif ne s'applique qu'au redémarrage ; le scan authentifié vérifie la version du paquet installé, pas celle du noyau en cours d'exécution. Bon point de discussion.
+- **Cas 2** : désactiver `vsftpd` fait disparaître « FTP Unencrypted Cleartext Login » du contre-scan non authentifié ; en revanche, désactiver Telnet ne change rien au scan non authentifié (il ne le signalait pas) et l'avis USN d'inetutils reste dans le scan authentifié, puisque le paquet est toujours installé.
 
 **Étapes 10 et 11.** Exemples de remédiation faciles à démontrer : `sudo apt install --only-upgrade nginx` (ou `php8.3-fpm`), désactiver Telnet (`sudo systemctl disable --now openbsd-inetd`) ou SNMP (`snmpd`), durcir `sshd_config` (si une règle de conformité le remonte), mettre à jour un paquet applicatif non critique. L'essentiel pédagogique est la **boucle** correction → contre-scan → disparition du résultat.
 
