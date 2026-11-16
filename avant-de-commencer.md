@@ -8,6 +8,17 @@ Ce dépôt réunit les énoncés des travaux pratiques de la formation **3-020 �
 
 Chaque apprenant dispose de **6 machines virtuelles** sur la plateforme Hexceos, qu'il ouvre depuis **son portail personnel** : un clic sur une machine ouvre sa console. Aucun laboratoire ne communique avec un autre : les adresses sont donc **les mêmes pour tout le monde**.
 
+**Votre portail.** Ouvrez **uniquement le vôtre** :
+
+| Participant | Prénom | Portail |
+| --- | --- | --- |
+| 01 | Samuel B. | [Ouvrir le portail du participant 01](https://hra-ng.hexceos.cloud/p/8571cea4-896f-48b5-b3ae-d9138f165956n8fgdm8q) |
+| 02 | Erwan C. | [Ouvrir le portail du participant 02](https://hra-ng.hexceos.cloud/p/8571cea4-896f-48b5-b3ae-d9138f1659566jpxzhv9) |
+| 03 | Jérémy D. | [Ouvrir le portail du participant 03](https://hra-ng.hexceos.cloud/p/8571cea4-896f-48b5-b3ae-d9138f16595668t3jrqr) |
+| 04 | Gaëlle É. | [Ouvrir le portail du participant 04](https://hra-ng.hexceos.cloud/p/8571cea4-896f-48b5-b3ae-d9138f165956ed5q848e) |
+| 05 | Christian G.-D. | [Ouvrir le portail du participant 05](https://hra-ng.hexceos.cloud/p/8571cea4-896f-48b5-b3ae-d9138f165956z9ee9h5n) |
+| 06 | Pierrick J. | [Ouvrir le portail du participant 06](https://hra-ng.hexceos.cloud/p/8571cea4-896f-48b5-b3ae-d9138f165956wff7n7jy) |
+
 | Bouton du portail | Usage |
 | --- | --- |
 | Ouvrir la console | Écran de la machine, comme si vous étiez devant |
