@@ -34,13 +34,20 @@ Point de discussion : le tri par CVSS ignore l'exposition de la machine, la prob
 
 **Résultats réels (essai sur la plateforme Hexceos).**
 
+Les deux rapports complets de cet essai, au format PDF, sont disponibles si votre scan n'a pas abouti ou pour comparer avec le vôtre :
+
+- [scan non authentifié de web et srv-int](rapports/scan-non-authentifie.pdf) (15 pages, 13 résultats) ;
+- [scan authentifié de web](rapports/scan-authentifie.pdf) (115 pages, 70 résultats).
+
+Ces rapports n'affichent que les résultats de QoD 70 % ou plus : 126 résultats bruts au départ pour le scan non authentifié. Le scan non authentifié a été lancé avec la liste de ports par défaut, sans UDP, d'où l'absence de SNMP.
+
 *Non authentifié (web et srv-int)*, 13 résultats, aucun High :
 - web : dépôt Git accessible (« Source Control Management (SCM) Files/Folders Accessible », 5.0, ports 80 et 443), « Cleartext Transmission of Sensitive Information via HTTP » (4.8), « FTP Unencrypted Cleartext Login » (4.8), « SSL/TLS: Deprecated TLSv1.0 and TLSv1.1 » (4.3, QoD 98 %), algorithmes MAC faibles en SSH, horodatages TCP et ICMP (2.x) ;
 - srv-int : « SSL/TLS: Renegotiation DoS » sur LDAP 389 et 636 (5.0), algorithmes MAC faibles en SSH, horodatages ;
 - Telnet n'apparaît pas en tant que tel : le scan non authentifié ne le signale pas comme vulnérabilité. Et sans UDP dans la liste de ports, SNMP non plus.
 
 *Authentifié (web)*, 70 résultats, dont 56 avis Ubuntu (USN) en QoD 97 % ; sévérité maximale 9.8. Paquets les plus cités :
-- **nginx** : 17 avis, jusqu'à 8.2 (USN-8563, 8210, 8955, 8354, 8458, 8271…) ;
+- **nginx** : 17 avis, jusqu'à 8.2 (USN-8563, 8210, 8955, 8354, 8458, 8271…) ; version installée `1.24.0-2ubuntu7`, corrigée à partir de `1.24.0-2ubuntu7.14` (USN-8563-1) ;
 - **PHP 8.3** : 7 avis, dont 4 à 9.8 ;
 - brotli, socat, libdbi-perl (9.8), pyjwt (9.1), noyau linux (8.4 et 7.8), inetutils (7.8, c'est le paquet de telnetd), net-snmp (7.5), libxml2, pcre2, zlib, mariadb, glibc, apt…
 
