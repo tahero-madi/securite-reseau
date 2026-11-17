@@ -259,6 +259,14 @@ Exécutez les tests suivants et reportez le résultat dans le tableau de tests d
 - `-m5` (curl) : abandonne après 5 secondes ; un refus de pfSense se traduit par une attente puis un échec, pas par un message d'erreur immédiat.
 - `sudo apt update` : interroge les dépôts Ubuntu, autorisés par S3 grâce à l'alias de noms `H_depots`.
 
+> **Si le test « poste utilisateur → pfSense 443 » passe au lieu d'être refusé**, une règle autorise encore l'adresse 10.1.10.20 vers l'interface de pfSense. Dans l'ordre :
+>
+> 1. *Firewall → Rules → LAN* : si une ligne **Anti-Lockout Rule** apparaît encore en tête, la règle anti-verrouillage est toujours active (elle autorise **tout le LAN** vers l'administration de pfSense). *System → Advanced → Admin Access* : cochez **Disable webConfigurator anti-lockout rule**, puis **Save** en bas de la page (étape 8).
+> 2. Vérifiez que la **source** de L1 est bien `H_poste_admin`, et non *LAN net* ou *any*.
+> 3. Vérifiez qu'aucune règle « HRA : tout autoriser » ne subsiste sur le LAN.
+>
+> Relancez le test : il doit attendre 5 secondes puis échouer. Depuis 10.1.10.10, `curl -kI -m5 https://10.1.10.1` doit toujours répondre (règle L1).
+
 Consultez ensuite *Status → System Logs → Firewall* : vos refus apparaissent, horodatés, avec la règle qui les a bloqués. Filtrez par interface.
 
 Retirez enfin l'adresse de test :
