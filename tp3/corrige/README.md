@@ -12,6 +12,69 @@ Si vous êtes bloqué, ou pour comparer avec votre configuration, le dossier [`p
 | 2 | **Firewall Rules** | [`2-regles-tp3.xml`](pfsense/2-regles-tp3.xml) | Les règles LAN (L1 à L10), SRV (S1 à S5) et DMZ (D1 à D4) ; plus aucune règle sur le WAN, hormis celle associée à la publication |
 | 3 | **NAT** | [`3-nat-tp3.xml`](pfsense/3-nat-tp3.xml) | NAT sortant en *Automatic* et publication W1 de `web` en 443, avec *Filter rule association* = **Pass** |
 
+### Ce que contiennent les fichiers
+
+**Alias** (*Firewall → Aliases*)
+
+| Alias | Type | Contenu | Rôle |
+|---|---|---|---|
+| `H_poste_admin` | Host | 10.1.10.10 | Poste d'administration (Kali) |
+| `H_srv_int` | Host | 10.1.20.10 | srv-int |
+| `H_web` | Host | 10.1.30.10 | web |
+| `H_wan_lab` | Host | 10.10.0.30, 10.10.0.40 | cloud-gw et ext |
+| `H_depots` | Host (noms DNS) | archive.ubuntu.com, security.ubuntu.com, repo.zabbix.com | Dépôts de mises à jour |
+| `N_LAN` | Network | 10.1.10.0/24 | LAN |
+| `N_SRV` | Network | 10.1.20.0/24 | SRV |
+| `N_DMZ` | Network | 10.1.30.0/24 | DMZ |
+| `N_ZONES` | Network | 10.1.20.0/24, 10.1.30.0/24 | SRV et DMZ |
+| `N_PRIVE` | Network | 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 | Plages privées (RFC 1918) |
+| `P_web` | Port | 80, 443 | HTTP, HTTPS |
+| `P_admin` | Port | 22, 443, 389, 636, 10050 | SSH, HTTPS, LDAP, LDAPS, agent Zabbix |
+| `P_admin_fw` | Port | 443, 22 | Administration de pfSense |
+
+**Règles de l'interface LAN** (lues de haut en bas, première correspondance gagnante)
+
+| N° | Action | IP | Protocole | Source | Destination | Port | Description |
+|---|---|---|---|---|---|---|---|
+| L1 | Pass | IPv4 | TCP | `H_poste_admin` | LAN address | `P_admin_fw` | Administration de pfSense |
+| L2 | Pass | IPv4 | TCP/UDP | `N_LAN` | LAN address | 53 | DNS |
+| L3 | Pass | IPv4 | UDP | `N_LAN` | LAN address | 123 | Heure (NTP) |
+| L4 | Pass | IPv4 | TCP | `H_poste_admin` | `N_ZONES` | `P_admin` | Administration de SRV et DMZ, agent Zabbix |
+| L5 | Pass (**désactivée**) | IPv4 | any | `H_poste_admin` | `N_ZONES` | any | Scanner Greenbone, activée seulement pendant les scans |
+| L6 | Pass | IPv4 | ICMP (echo request) | `H_poste_admin` | any | — | Ping de diagnostic |
+| L7 | Pass | IPv4 | TCP | `N_LAN` | `H_web` | `P_web` | Intranet |
+| L8 | Pass | IPv4 | TCP | `H_poste_admin` | `H_wan_lab` | 22 | Administration d'ext et de cloud-gw |
+| L9 | Pass | IPv4 | TCP | `N_LAN` | **`! N_PRIVE`** (tout sauf les plages privées) | `P_web` | Navigation Internet |
+| L10 | Block, **journalisée** | IPv4+IPv6 | any | any | any | any | Refus par défaut du LAN |
+
+**Règles de l'interface SRV**
+
+| N° | Action | IP | Protocole | Source | Destination | Port | Description |
+|---|---|---|---|---|---|---|---|
+| S1 | Pass | IPv4 | TCP/UDP | `N_SRV` | SRV address | 53 | DNS |
+| S2 | Pass | IPv4 | UDP | `N_SRV` | SRV address | 123 | Heure (NTP) |
+| S3 | Pass | IPv4 | TCP | `H_srv_int` | `H_depots` | `P_web` | Mises à jour |
+| S4 | Pass | IPv4 | TCP | `H_srv_int` | `H_poste_admin` | 10051 | Agent Zabbix actif vers le serveur |
+| S5 | Block, **journalisée** | IPv4+IPv6 | any | any | any | any | Refus par défaut de SRV |
+
+**Règles de l'interface DMZ**
+
+| N° | Action | IP | Protocole | Source | Destination | Port | Description |
+|---|---|---|---|---|---|---|---|
+| D1 | Pass | IPv4 | TCP/UDP | `N_DMZ` | DMZ address | 53 | DNS |
+| D2 | Pass | IPv4 | UDP | `N_DMZ` | DMZ address | 123 | Heure (NTP) |
+| D3 | Pass | IPv4 | TCP | `H_web` | `H_depots` | `P_web` | Mises à jour |
+| D4 | Block, **journalisée** | IPv4+IPv6 | any | any | any | any | Refus par défaut de la DMZ (dont DMZ → SRV et DMZ → LAN) |
+
+**Interface WAN et NAT**
+
+| N° | Type | Interface | Source | Destination | Port | Redirigé vers | Règle de filtrage |
+|---|---|---|---|---|---|---|---|
+| W1 | Port forward (*Firewall → NAT*) | WAN | any | WAN address | 443/TCP | `H_web`, port 443 | *Filter rule association* = **Pass** : aucune règle séparée sur le WAN |
+| — | NAT sortant | — | — | — | — | — | Mode **Automatic** |
+
+Sur le WAN, aucune autre règle : les règles « HRA : tout autoriser » ont disparu, tout le reste tombe sur le refus implicite de pfSense.
+
 > **Attention :** la restauration **remplace** toutes vos règles de filtrage (WAN compris) et toute la section NAT. Prenez d'abord un instantané de pfSense depuis le portail, et exportez votre propre configuration si vous voulez la comparer ensuite.
 
 Téléchargez les trois fichiers sur la Kali :
