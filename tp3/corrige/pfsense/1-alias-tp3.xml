@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aliases>
+	<alias>
+		<name>H_poste_admin</name>
+		<type>host</type>
+		<address>10.1.10.10</address>
+		<descr>Poste d'administration (Kali)</descr>
+		<detail>TP3</detail>
+	</alias>
+	<alias>
+		<name>H_srv_int</name>
+		<type>host</type>
+		<address>10.1.20.10</address>
+		<descr>srv-int</descr>
+		<detail>TP3</detail>
+	</alias>
+	<alias>
+		<name>H_web</name>
+		<type>host</type>
+		<address>10.1.30.10</address>
+		<descr>web</descr>
+		<detail>TP3</detail>
+	</alias>
+	<alias>
+		<name>H_wan_lab</name>
+		<type>host</type>
+		<address>10.10.0.30 10.10.0.40</address>
+		<descr>cloud-gw et ext</descr>
+		<detail>TP3||TP3</detail>
+	</alias>
+	<alias>
+		<name>H_depots</name>
+		<type>host</type>
+		<address>archive.ubuntu.com security.ubuntu.com repo.zabbix.com</address>
+		<descr>Dépôts de mises à jour</descr>
+		<detail>TP3||TP3||TP3</detail>
+	</alias>
+	<alias>
+		<name>N_LAN</name>
+		<type>network</type>
+		<address>10.1.10.0/24</address>
+		<descr>LAN</descr>
+		<detail>TP3</detail>
+	</alias>
+	<alias>
+		<name>N_SRV</name>
+		<type>network</type>
+		<address>10.1.20.0/24</address>
+		<descr>SRV</descr>
+		<detail>TP3</detail>
+	</alias>
+	<alias>
+		<name>N_DMZ</name>
+		<type>network</type>
+		<address>10.1.30.0/24</address>
+		<descr>DMZ</descr>
+		<detail>TP3</detail>
+	</alias>
+	<alias>
+		<name>N_ZONES</name>
+		<type>network</type>
+		<address>10.1.20.0/24 10.1.30.0/24</address>
+		<descr>SRV et DMZ</descr>
+		<detail>TP3||TP3</detail>
+	</alias>
+	<alias>
+		<name>N_PRIVE</name>
+		<type>network</type>
+		<address>10.0.0.0/8 172.16.0.0/12 192.168.0.0/16</address>
+		<descr>Plages privées (RFC 1918)</descr>
+		<detail>TP3||TP3||TP3</detail>
+	</alias>
+	<alias>
+		<name>P_web</name>
+		<type>port</type>
+		<address>80 443</address>
+		<descr>HTTP, HTTPS</descr>
+		<detail>TP3||TP3</detail>
+	</alias>
+	<alias>
+		<name>P_admin</name>
+		<type>port</type>
+		<address>22 443 389 636 10050</address>
+		<descr>SSH, HTTPS, LDAP, LDAPS, agent Zabbix</descr>
+		<detail>TP3||TP3||TP3||TP3||TP3</detail>
+	</alias>
+	<alias>
+		<name>P_admin_fw</name>
+		<type>port</type>
+		<address>443 22</address>
+		<descr>Administration de pfSense</descr>
+		<detail>TP3||TP3</detail>
+	</alias>
+</aliases>

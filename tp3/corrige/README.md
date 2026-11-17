@@ -2,6 +2,41 @@
 
 > Cherchez d'abord par vous-même : ce corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP.
 
+## Configuration de référence à restaurer
+
+Si vous êtes bloqué, ou pour comparer avec votre configuration, le dossier [`pfsense/`](pfsense/) contient la configuration attendue du TP, au format de sauvegarde de pfSense :
+
+| Ordre | *Restore area* | Fichier | Contenu |
+|---|---|---|---|
+| 1 | **Aliases** | [`1-alias-tp3.xml`](pfsense/1-alias-tp3.xml) | Les alias de l'étape 3, plus `P_admin_fw` (ports 443 et 22 de l'administration de pfSense, utilisé par L1) |
+| 2 | **Firewall Rules** | [`2-regles-tp3.xml`](pfsense/2-regles-tp3.xml) | Les règles LAN (L1 à L10), SRV (S1 à S5) et DMZ (D1 à D4) ; plus aucune règle sur le WAN, hormis celle associée à la publication |
+| 3 | **NAT** | [`3-nat-tp3.xml`](pfsense/3-nat-tp3.xml) | NAT sortant en *Automatic* et publication W1 de `web` en 443, avec *Filter rule association* = **Pass** |
+
+> **Attention :** la restauration **remplace** toutes vos règles de filtrage (WAN compris) et toute la section NAT. Prenez d'abord un instantané de pfSense depuis le portail, et exportez votre propre configuration si vous voulez la comparer ensuite.
+
+Téléchargez les trois fichiers sur la Kali :
+
+```bash
+cd ~/livrables
+for f in 1-alias-tp3.xml 2-regles-tp3.xml 3-nat-tp3.xml; do curl -fsSLO https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/tp3/corrige/pfsense/$f; done
+ls -l *-tp3.xml
+```
+
+Puis, dans pfSense, *Diagnostics → Backup & Restore*, section **Restore Backup**, **dans l'ordre du tableau** (les règles utilisent les alias) : choisir la *Restore area*, *Parcourir* le fichier, **Restore Configuration**. Ensuite :
+
+- *Status → Filter Reload* → **Reload Filter** ;
+- *System → Advanced → Admin Access* : cocher **Disable webConfigurator anti-lockout rule**, puis *Save* (ce réglage n'est pas dans les fichiers ; la règle L1 garde l'accès depuis la Kali) ;
+- la règle **L5** (scanner Greenbone) est importée **désactivée**, comme dans l'énoncé : réactivez-la seulement pendant les scans.
+
+**Ligne par ligne.**
+
+- `curl -fsSLO <url>` : télécharge le fichier et l'enregistre sous son nom d'origine (`-O`), en échouant proprement si le fichier n'existe pas (`-f`), sans barre de progression (`-sS`) et en suivant les redirections (`-L`).
+- `ls -l *-tp3.xml` : vérifie que les trois fichiers sont bien là.
+
+En cas de perte d'accès à l'interface après la restauration : console de pfSense (bouton écran du portail), option **8**, puis `pfctl -d` pour couper temporairement le filtrage, ou restauration de l'instantané.
+
+Si `apt update` échoue ensuite sur `srv-int` ou `web` (test T11) : l'alias `H_depots` contient des **noms** (`archive.ubuntu.com`, `security.ubuntu.com`, `repo.zabbix.com`), que pfSense résout périodiquement. Vérifiez dans *Diagnostics → Tables* que `H_depots` contient des adresses, et que les sources `apt` de la machine (`grep -rh ^URIs /etc/apt/sources.list.d/`) utilisent bien ces noms : si elles pointent vers un autre miroir, ajoutez ce nom à l'alias.
+
 **Points de vigilance.** pfSense évalue les règles **par interface**, sur le trafic **entrant** dans cette interface, première correspondance gagnante, avec un refus implicite final (non journalisé par défaut → d'où la règle de blocage explicite journalisée). Une règle pour le flux LAN → DMZ s'écrit donc sur l'interface **LAN**.
 
 **Étape 1.** Les règles « HRA : tout autoriser » sur le **WAN** signifient que toute machine d'Internet (ici `ext`) joint tout ce que pfSense route : pfSense lui-même, et les réseaux internes. C'est le constat de départ : un pare-feu livré grand ouvert ne filtre rien.

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nat>
+	<outbound>
+		<mode>automatic</mode>
+	</outbound>
+	<rule>
+		<source>
+			<any/>
+		</source>
+		<destination>
+			<network>wanip</network>
+			<port>443</port>
+		</destination>
+		<ipprotocol>inet</ipprotocol>
+		<protocol>tcp</protocol>
+		<target>H_web</target>
+		<local-port>443</local-port>
+		<interface>wan</interface>
+		<descr>W1 Publication web</descr>
+		<associated-rule-id>pass</associated-rule-id>
+	</rule>
+</nat>
