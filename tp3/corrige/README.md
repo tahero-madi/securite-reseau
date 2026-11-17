@@ -73,6 +73,8 @@ Si vous êtes bloqué, ou pour comparer avec votre configuration, le dossier [`p
 | W1 | Port forward (*Firewall → NAT*) | WAN | any | WAN address | 443/TCP | `H_web`, port 443 | *Filter rule association* = **Pass** : aucune règle séparée sur le WAN |
 | — | NAT sortant | — | — | — | — | — | Mode **Automatic** |
 
+C'est l'**état final**, après la correction de l'étape 10. À l'étape 9, la publication est d'abord créée avec *Add associated filter rule* : une règle visible apparaît alors sur l'onglet WAN (TCP 443 vers `H_web`). L'encadré « À méditer » de l'étape 10 montre qu'elle laisse aussi passer l'accès direct à 10.1.30.10:443, et la remplace par *Filter rule association* = **Pass** : la règle WAN associée est alors supprimée, et c'est la règle NAT elle-même qui laisse passer le trafic publié (`pfctl -sn | grep rdr` dans *Diagnostics → Command Prompt* la montre : `rdr pass …`).
+
 Sur le WAN, aucune autre règle : les règles « HRA : tout autoriser » ont disparu, tout le reste tombe sur le refus implicite de pfSense.
 
 > **Attention :** la restauration **remplace** toutes vos règles de filtrage (WAN compris) et toute la section NAT. Prenez d'abord un instantané de pfSense depuis le portail, et exportez votre propre configuration si vous voulez la comparer ensuite.
