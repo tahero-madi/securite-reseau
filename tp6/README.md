@@ -221,6 +221,7 @@ secrets {
 }
 EOF
 sudo chmod 600 /etc/swanctl/swanctl.conf
+sudo grep secret /etc/swanctl/swanctl.conf
 sudo swanctl --load-all
 ```
 
@@ -239,6 +240,7 @@ sudo swanctl --load-all
 - `start_action = trap` : le tunnel s'établit automatiquement dès qu'un paquet correspond aux sélecteurs.
 - bloc `secrets`, entrée `ike-site` (`id = 10.10.0.20`, `secret = "…"`) : la clé partagée à utiliser avec pfSense.
 - `sudo chmod 600 /etc/swanctl/swanctl.conf` : le fichier contient la clé ; seul `root` doit pouvoir le lire.
+- `sudo grep secret /etc/swanctl/swanctl.conf` : vérifie que la clé a bien été recopiée. La ligne doit contenir les 44 caractères affichés à l'étape 1. Si elle affiche `secret = ""`, le fichier `~/psk.txt` n'existait pas au moment du `tee` : voir l'encadré « AUTHENTICATION_FAILED » de l'étape 7.
 - `sudo swanctl --load-all` : demande au service strongSwan de charger la connexion et la clé. La sortie doit contenir `loaded ike secret 'ike-site'` et `successfully loaded 1 connections`.
 
 > **Si `--load-all` échoue** avec `connecting to 'unix:///var/run/charon.vici' failed` : le service n'est pas démarré, `sudo systemctl restart strongswan`, puis recommencez.
@@ -258,7 +260,7 @@ rm ~/psk.txt
 
 **Ligne par ligne.**
 
-- `sudo swanctl --initiate --child net` : lance la négociation de la phase 1 puis du tunnel `net`. La dernière ligne doit être `initiate completed successfully`.
+- `sudo swanctl --initiate --child net` : lance la négociation de la phase 1 puis du tunnel `net`. La dernière ligne doit être `initiate completed successfully`. Les lignes `plugin '…': failed to load` du début sont normales : la configuration par défaut cite des modules que le paquet d'Ubuntu ne fournit pas ; elles n'ont aucun effet.
 - `sudo swanctl --list-sas` : affiche les associations de sécurité. Vérifiez :
   - `site: #1, ESTABLISHED, IKEv2` : la phase 1 est établie ;
   - `AES_GCM_16-256/PRF_HMAC_SHA2_256/ECP_256` : les algorithmes de phase 1 retenus ;
@@ -270,6 +272,22 @@ rm ~/psk.txt
 Dans pfSense, *Status → IPsec* : la ligne `cloud` est **Established** ; *Show child SA entries* montre le tunnel `10.1.20.0/24 ↔ 10.101.1.0/24`. Capturez l'écran.
 
 > **Si la négociation échoue** : comparez les deux côtés, dans cet ordre. Clé identique ? Algorithmes identiques (AES256-GCM 128 bits, SHA256, groupe 19, des deux côtés et dans les deux phases) ? Identités (`My/Peer IP address` côté pfSense) ? Sélecteurs inversés ? Le journal de pfSense (*Status → System Logs → IPsec*) indique en général la cause : `NO_PROPOSAL_CHOSEN` (algorithmes), `AUTHENTICATION_FAILED` (clé ou identité), `TS_UNACCEPTABLE` (sélecteurs).
+
+> **`received AUTHENTICATION_FAILED notify error`.** Si la sortie contient d'abord `selected proposal: IKE:AES_GCM_16_256/PRF_HMAC_SHA2_256/ECP_256`, les algorithmes sont bons : c'est pfSense qui refuse la **clé** de `cloud-gw` (son journal IPsec indique `MAC mismatched`), ou ne trouve pas de clé pour son identité (`no shared key found`). Cause la plus fréquente : la clé est vide dans `swanctl.conf` (étape 6 relancée après `rm ~/psk.txt`), ou la clé collée dans pfSense contient un espace en trop. Le plus simple : recopier la clé de pfSense (*VPN → IPsec → Tunnels*, crayon de la phase 1, champ *Pre-Shared Key*) dans `swanctl.conf`.
+>
+> ```bash
+> read -rs PSK
+> sudo sed -i "s|^\( *secret = \).*|\1\"$PSK\"|" /etc/swanctl/swanctl.conf
+> sudo grep secret /etc/swanctl/swanctl.conf
+> sudo swanctl --load-creds
+> sudo swanctl --initiate --child net
+> ```
+>
+> - `read -rs PSK` : attend que vous colliez la clé (puis `Entrée`) et la range dans la variable `PSK`, sans l'afficher (`-s`) ni interpréter les caractères spéciaux (`-r`).
+> - `sudo sed -i "s|^\( *secret = \).*|…|"` : remplace, dans le fichier, la valeur de la ligne `secret = …` par la clé, entre guillemets. Le séparateur `|` évite les conflits avec les `/` que contient une clé Base64.
+> - `sudo grep secret …` : vérifie le résultat.
+> - `sudo swanctl --load-creds` : recharge seulement les clés.
+> - `sudo swanctl --initiate --child net` : relance la négociation.
 
 ## Étape 8 — Tester les flux autorisés et interdits
 
