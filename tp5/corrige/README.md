@@ -2,13 +2,15 @@
 
 > Cherchez d'abord par vous-même : ce corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP.
 
-**Préparation.** Le rôle « Internet » est tenu par `ext` (10.10.0.40), qui a une route vers `10.1.0.0/16` par pfSense. La première mise à jour ET Open télécharge quelques dizaines de mégaoctets. Rappeler en fin de TP de retirer la publication du port 80 et de repasser Suricata en détection seule.
+**Préparation.** Le rôle « Internet » est tenu par `ext` (10.10.0.40), qui a une route vers `10.1.0.0/16` par pfSense. La première mise à jour ET Open télécharge quelques dizaines de mégaoctets.
 
-## Étapes 1 et 2 — Installation et règles
+**Gestion du temps (1 h).** Faire lancer l'étape 1 (installation du paquet et téléchargement des règles, 3 à 5 minutes d'attente) pendant la fin de l'apport théorique du module 5. Passer vérifier *Home Net* et *Pass List* sur chaque écran à la fin de l'étape 3 : c'est la seule erreur qui fait perdre beaucoup de temps, car elle ne se voit qu'à l'étape 6. Le réglage d'un faux positif (`suppress`) est passé en défi : le montrer en démonstration (3 minutes) si le temps le permet, c'est la compétence la plus utile en exploitation. Rappeler en fin de TP de retirer la publication du port 80 et de repasser Suricata en détection seule.
+
+## Étape 1 — Installation et règles
 
 *Updates* doit afficher une date du jour en face de *Emerging Threats Open Rules*. Si le téléchargement échoue : résolution DNS ou accès Internet de pfSense (*Diagnostics → Ping* vers `rules.emergingthreats.net`).
 
-## Étape 3 — `HOME_NET`, le piège du laboratoire
+## Étape 2 — `HOME_NET`, le piège du laboratoire
 
 Le WAN est en adresses privées (10.10.0.0/24). Par défaut, pfSense met dans `HOME_NET` tous les réseaux connectés, WAN compris, et dans la *Pass List* les réseaux locaux et la passerelle. Conséquences :
 
@@ -27,20 +29,20 @@ Contenu attendu :
 
 C'est l'occasion de montrer qu'une variable mal définie rend un IDS aveugle **sans aucun message d'erreur**.
 
-## Étapes 4 à 6 — Instance WAN
+## Étape 3 — Instance WAN
 
-État vert dans *Interfaces* ; `suricata.log` se termine par `Engine started`. Si le démarrage échoue : mémoire insuffisante (trop de catégories) ou règle invalide (le journal donne le fichier et la ligne).
+Catégories `emerging-scan` et `emerging-web_server` ; état vert dans *Interfaces* ; `suricata.log` se termine par `Engine started`. Si le démarrage échoue : mémoire insuffisante ou règle invalide (le journal donne le fichier et la ligne).
 
-## Étapes 7 à 9 — Premières alertes
+## Étapes 4 à 6 — Premières alertes
 
 - `.git/config` renvoie le fichier de configuration du dépôt, avec l'adresse `https://deploy:Deploy2019!@git.lab.local/intranet.git` : un identifiant et un mot de passe en clair. Constat **critique** pour le TP8 (exposition d'un secret, ISO 27002 8.4 et 8.12).
 - L'injection renvoie en général `200` : la page d'accueil ignore le paramètre. Le code ne dit rien de la réussite d'une injection ; c'est l'alerte qui compte.
-- Selon les catégories, ET Open produit des alertes de balayage (`ET SCAN …`) et éventuellement web. Si aucune alerte ET ne correspond à l'injection, ce n'est pas grave : les règles de l'étape 10 correspondent à coup sûr.
+- Selon les catégories, ET Open produit des alertes de balayage (`ET SCAN …`) et éventuellement web. Si aucune alerte ET ne correspond à l'injection, ce n'est pas grave : les règles de l'étape 7 correspondent à coup sûr.
 - Dans *Alerts*, la source est `10.10.0.40` et la destination `10.10.0.20` (avant traduction).
 
-## Étapes 10 et 11 — Règles personnalisées
+## Étapes 7 et 8 — Règles personnalisées
 
-Les trois règles `LAB …` (9000001 à 9000003) apparaissent dans *Alerts*. Erreurs classiques :
+Les deux règles `LAB …` (9000001 `.git`, 9000002 injection) apparaissent dans *Alerts*. Erreurs classiques :
 
 - `sid` en double : Suricata ne démarre pas ;
 - règle saisie mais instance non redémarrée ;
@@ -49,7 +51,7 @@ Les trois règles `LAB …` (9000001 à 9000003) apparaissent dans *Alerts*. Err
 
 Montrer la structure action / en-tête / options, et l'intérêt des *sticky buffers* (`http.uri` : adresse décodée et normalisée, `%20` devient un espace) par rapport à un `content` sur le paquet brut, qui ne verrait que `%20OR%20`.
 
-## Étape 12 — Blocage
+## Étape 9 — Blocage
 
 Réglage attendu : *Block Offenders* coché, *Legacy Mode*, *Kill States* coché, *Block On DROP Only* coché, *Which IP to Block* = `SRC`, règle 9000001 en `drop` (`rev:2`).
 
@@ -62,24 +64,24 @@ Pourquoi *Block On DROP Only* : sans lui, en mode Legacy, **toute** alerte bloqu
 
 Mode *Inline* : la règle `drop` supprime le paquet lui-même et seulement lui, sans bloquer l'adresse. Il exige une carte compatible *netmap* ; sur des cartes virtuelles, il peut être instable, d'où le choix de Legacy dans le laboratoire.
 
-## Étape 13 — Réglage
-
-Liste `wan_suppress` :
-
-```text
-suppress gen_id 1, sig_id 9000002, track by_src, ip 10.10.0.40
-```
-
-associée à l'instance WAN (*Alert Suppression and Filtering*). Le balayage depuis `ext` ne produit plus 9000002 ; l'injection produit toujours 9000003.
-
-Une bonne note de réglage contient : la règle, l'exception (portée **minimale** : une règle, une source), la justification (scanner autorisé par contrat), le responsable et la date de revue. Le `suppress` cible une règle pour une source précise, la protection reste active pour toutes les autres ; désactiver la règle la supprime partout. Le `threshold … type limit` garde une trace (une alerte par période) au lieu de tout taire.
-
-## Étape 14 — Remise en ordre
+## Étape 10 — Remise en ordre
 
 - Publication du port 80 supprimée ; depuis `ext`, `curl` vers `http://10.10.0.20/` renvoie `000`.
 - *Block Offenders* décoché, instance toujours démarrée (détection seule) : les alertes alimenteront le TP7.
 
-## Défi
+## Défi ★ — Balayage et réglage d'un faux positif
+
+La règle 9000003 (`flags:S,12` + `detection_filter … count 30, seconds 10`) alerte sur le `nmap --top-ports 100` de l'étape 5. Liste `wan_suppress` :
+
+```text
+suppress gen_id 1, sig_id 9000003, track by_src, ip 10.10.0.40
+```
+
+associée à l'instance WAN (*Alert Suppression and Filtering*), instance redémarrée. Le balayage depuis `ext` ne produit plus 9000003 ; l'injection produit toujours 9000002.
+
+Une bonne note de réglage contient : la règle, l'exception (portée **minimale** : une règle, une source), la justification (scanner autorisé par contrat), le responsable et la date de revue. Le `suppress` cible une règle pour une source précise, la protection reste active pour toutes les autres ; désactiver la règle la supprime partout. Le `threshold … type limit` garde une trace (une alerte par période) au lieu de tout taire.
+
+## Défi ★★ — Instance DMZ
 
 Instance DMZ : `HOME_NET` = `10.1.0.0/16` (tout le site), ou au moins `10.1.20.0/24` pour que la règle de rebond ait un sens. Exemple :
 

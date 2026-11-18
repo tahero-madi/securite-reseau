@@ -2,7 +2,7 @@
 
 > Cherchez d'abord par vous-même : ce corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP.
 
-**Préparation.** Rien à installer : `cloud-gw` porte strongSwan (`swanctl`, service `strongswan`), nftables (fichier `/etc/nftables.conf` vide), ulogd2 et une interface virtuelle `vpc0` (10.101.1.1/24) qui joue le VPC ; nginx y publie le service HTTPS sur 10.101.1.1. pfSense (10.10.0.20) et `cloud-gw` (10.10.0.30) sont sur le même segment « Internet », sans traduction d'adresses entre eux : pas de NAT-T, l'ESP circule en protocole IP 50. À vérifier une fois sur la plateforme : l'ESP passe bien sur le WAN (voir `hexceos/README.md`). Si Suricata est resté en mode blocage après le TP5, une alerte sur `cloud-gw` peut le bloquer : vérifier *Services → Suricata → Blocks*.
+**Préparation.** Rien à installer : `cloud-gw` porte strongSwan (`swanctl`, service `strongswan`) et une interface virtuelle `vpc0` (10.101.1.1/24) qui joue le VPC ; nginx y publie le service HTTPS sur 10.101.1.1. pfSense (10.10.0.20) et `cloud-gw` (10.10.0.30) sont sur le même segment « Internet », sans traduction d'adresses entre eux : pas de NAT-T, l'ESP circule en protocole IP 50. À vérifier une fois sur la plateforme : l'ESP passe bien sur le WAN (voir `hexceos/README.md`). Si Suricata est resté en mode blocage après le TP5, une alerte sur `cloud-gw` peut le bloquer : vérifier *Services → Suricata → Blocks*.
 
 ## Étape 1 — Clé partagée
 
@@ -54,7 +54,7 @@ Erreurs classiques et message correspondant dans *Status → System Logs → IPs
 | `AUTHENTICATION_FAILED` | Clé différente, ou identités (*My/Peer identifier*) qui ne correspondent pas aux `id` |
 | `TS_UNACCEPTABLE` | Sélecteurs non inversés, ou masque différent |
 | `connecting to 'unix:///var/run/charon.vici' failed` | Service `strongswan` arrêté |
-| Négociation qui n'aboutit jamais | Suricata a bloqué `cloud-gw`, ou nftables chargé sans la règle IKE |
+| Négociation qui n'aboutit jamais | Suricata a bloqué `cloud-gw` (*Services → Suricata → Blocks*) |
 
 ## Étape 8 — Tests
 
@@ -71,37 +71,16 @@ Erreurs classiques et message correspondant dans *Status → System Logs → IPs
 
 Avec le filtre `esp`, seuls 10.10.0.20 ↔ 10.10.0.30 et le SPI apparaissent ; les adresses internes, les ports et la charge HTTPS sont invisibles. Le filtre `tcp.port == 22` montre au contraire la session SSH de la Kali en clair au niveau IP et TCP (adresses, ports, tailles), avec un contenu chiffré par SSH. Si aucun paquet ESP n'apparaît : le `curl` a été lancé hors de la capture, ou la capture a été prise sur la mauvaise carte.
 
-## Étapes 10 et 11 — Groupes de sécurité et journaux de flux
-
-Le parallèle nftables ↔ groupes de sécurité est le cœur du module 6 : refus par défaut, autorisations explicites par rôle et par source, filtrage à états. Les erreurs typiques :
-
-- règle ESP oubliée : IKE s'établit, plus aucun trafic dans le tunnel ;
-- règle IKE oubliée : le tunnel tient jusqu'à la prochaine renégociation, puis tombe ;
-- règle d'administration oubliée : seule la session en cours survit (`established`) ; la suivante exige la console du portail.
-
-La règle d'administration accepte SSH depuis 10.10.0.20 : c'est la Kali, traduite par pfSense, mais aussi **toute** machine du site qui sort par pfSense. En production : adresse d'administration dédiée, ou accès sans port ouvert (AWS Systems Manager Session Manager, Azure Bastion).
-
-Amélioration possible : n'accepter les flux du site que s'ils sont arrivés **par le tunnel**, et non en clair avec une adresse source usurpée : `meta ipsec exists` dans les règles 443 et 22.
-
-Journal attendu :
-
-```text
-… cloudsg-drop: IN=ens18 OUT= MAC=… SRC=10.10.0.40 DST=10.10.0.30 … PROTO=TCP SPT=… DPT=22 … SYN …
-… cloudsg-ok: IN=ens18 OUT= MAC=… SRC=10.1.20.10 DST=10.101.1.1 … PROTO=TCP SPT=… DPT=443 … SYN …
-```
-
-La ligne `cloudsg-ok` a `IN=ens18` : le paquet déchiffré est attribué à la carte par laquelle est arrivé l'ESP.
-
-## Étape 12 — Transposition
+## Étape 10 — Transposition
 
 | Élément du TP | Équivalent AWS | Équivalent Azure |
 |---|---|---|
 | Tunnel IPsec pfSense ↔ `cloud-gw` | Site-to-Site VPN : *Customer Gateway* + *Virtual Private Gateway* ou *Transit Gateway* | *VPN Gateway* + *Local Network Gateway* + connexion IPsec |
 | VPC 10.101.1.0/24 | VPC et sous-réseau | VNet et sous-réseau |
-| Règle « HTTPS depuis le réseau SRV » | *Security Group* entrant 443, source = plage du site | NSG entrant 443, source = plage du site |
-| Règle « SSH depuis `srv-int` seulement » | SG entrant 22 depuis une seule adresse (mieux : Session Manager, aucun port ouvert) | NSG entrant 22 depuis une seule adresse (mieux : Azure Bastion) |
-| `policy drop` | Comportement par défaut d'un SG : tout refusé en entrée | Règle par défaut `DenyAllInBound`, **mais** `AllowVnetInBound` la précède : tout le VNet (et les réseaux reliés par VPN) est autorisé si on ne le restreint pas |
-| Journaux `cloudsg-ok` / `cloudsg-drop` | VPC Flow Logs | VNet Flow Logs (les NSG Flow Logs sont en fin de vie) |
+| Règle S6 (qui utilise le tunnel) | Table de routage du sous-réseau vers la passerelle VPN, et *Security Group* des instances (source = plage du site) | Routes propagées par la *VPN Gateway*, et NSG (source = plage du site) |
+| Règle I1 (le cloud n'ouvre pas vers le site) | Règles **sortantes** du *Security Group* (par défaut tout est autorisé en sortie : à restreindre), ou *Network ACL* | Règles sortantes du NSG (par défaut `AllowVnetOutBound` autorise tout vers le VNet et les réseaux reliés) ; filtrage côté site, comme ici |
+| Filtrage de l'instance cloud (HTTPS depuis le site, SSH depuis `srv-int`, refus par défaut) | *Security Group* : refus par défaut en entrée, règle 443 depuis la plage du site, 22 depuis une seule adresse (mieux : Session Manager, aucun port ouvert) | NSG : `DenyAllInBound` par défaut, **mais** `AllowVnetInBound` le précède : tout le VNet et les réseaux reliés par VPN sont autorisés si on ne le restreint pas ; 22 via Azure Bastion |
+| Journal des refus | VPC Flow Logs | VNet Flow Logs (les NSG Flow Logs sont en fin de vie) |
 | Console du portail | EC2 Serial Console | Serial Console des VM |
 
 Vérifier que les apprenants ne confondent pas *Security Group* (à états, attaché à l'instance) et *Network ACL* (sans état, attachée au sous-réseau, il faut alors autoriser explicitement les ports de retour).

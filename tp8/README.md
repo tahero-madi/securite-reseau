@@ -53,7 +53,7 @@ mousepad rapport-audit.md &
 ls ~/livrables
 ```
 
-- `ls ~/livrables` : liste vos livrables. Repérez la cartographie et l'inventaire (TP1), le rapport de vulnérabilités (TP2), la matrice de flux (TP3), les traces RADIUS (TP4), les règles Suricata (TP5), l'état du tunnel et les règles nftables (TP6).
+- `ls ~/livrables` : liste vos livrables. Repérez la cartographie et l'inventaire (TP1), le rapport de vulnérabilités (TP2), la matrice de flux (TP3), les traces RADIUS (TP4), les règles Suricata (TP5), l'état du tunnel et la capture prouvant le chiffrement (TP6).
 
 Exportez la configuration de pfSense : *Diagnostics → Backup & Restore*, *Backup area* `All`, *Download configuration as XML*. Rangez le fichier dans `~/livrables/preuves/`.
 

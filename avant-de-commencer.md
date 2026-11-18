@@ -38,7 +38,7 @@ Chaque apprenant dispose de **6 machines virtuelles** sur la plateforme Hexceos,
 | pfSense | Pare-feu, routeur, IDS/IPS, VPN | WAN 10.10.0.20 · LAN 10.1.10.1 · SRV 10.1.20.1 · DMZ 10.1.30.1 | https://10.1.10.1 |
 | srv-int | OpenLDAP, FreeRADIUS, collecteur rsyslog, agent Zabbix | 10.1.20.10 (SRV) | `ssh formation@10.1.20.10` |
 | web | nginx, DVWA, Juice Shop et services anciens (cible vulnérable) | 10.1.30.10 (DMZ) | `ssh formation@10.1.30.10` ; http(s)://10.1.30.10 |
-| cloud-gw | Passerelle du « cloud » (strongSwan, nftables) et service applicatif « cloud » | 10.10.0.30 (WAN) · 10.101.1.1 (VPC) | `ssh formation@10.10.0.30` |
+| cloud-gw | Passerelle du « cloud » (strongSwan) et service applicatif « cloud » | 10.10.0.30 (WAN) · 10.101.1.1 (VPC) | `ssh formation@10.10.0.30` |
 | ext | Machine « Internet » : attaquant externe, tests d'exposition | 10.10.0.40 (WAN) | `ssh formation@10.10.0.40` |
 
 Le réseau WAN `10.10.0.0/24` joue **Internet**. Sa passerelle, `10.10.0.1`, appartient à la plateforme Hexceos et donne accès au vrai Internet. La plateforme a aussi une adresse en `.254` sur chacun de vos réseaux internes. Ces équipements sont **hors du périmètre** de vos tests : ne les balayez pas, ne les attaquez pas.

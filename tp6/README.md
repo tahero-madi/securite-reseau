@@ -1,10 +1,10 @@
-# TP6 — Interconnexion hybride : VPN IPsec et groupes de sécurité
+# TP6 — Interconnexion hybride : VPN IPsec
 
-**Jour 3, 13:40 · 2 h 10, pause incluse.** Objectifs : monter un tunnel IPsec IKEv2 conforme aux recommandations de l'ANSSI entre pfSense (le site) et `cloud-gw` (la passerelle du « cloud ») ; filtrer ce qui entre dans le tunnel et ce qui en sort ; prouver le chiffrement ; imiter des groupes de sécurité (*Security Groups*) avec nftables et en tirer des journaux de flux ; transposer la configuration vers AWS et Azure.
+**Jour 3, 13:40 · 1 h 45, pause incluse.** Objectifs : monter un tunnel IPsec IKEv2 conforme aux recommandations de l'ANSSI entre pfSense (le site) et `cloud-gw` (la passerelle du « cloud ») ; filtrer ce qui entre dans le tunnel et ce qui en sort ; prouver le chiffrement ; transposer la configuration vers AWS et Azure.
 
-**Prérequis** : modules 5 et 6, TP3 terminé (règles L4 et L8 : la Kali joint `srv-int` et `cloud-gw` en SSH). **Livrable** : état du tunnel, capture prouvant le chiffrement, jeu de règles nftables, tableau de transposition, dans `~/livrables`.
+**Prérequis** : modules 5 et 6, TP3 terminé (règles L4 et L8 : la Kali joint `srv-int` et `cloud-gw` en SSH). **Livrable** : état du tunnel, capture prouvant le chiffrement, tableau de transposition, dans `~/livrables`.
 
-**Déroulé** : étapes 1 à 5 (pfSense) 35 min · étapes 6 à 8 (strongSwan et tests) 30 min · étape 9 (preuve du chiffrement) 15 min · étapes 10 et 11 (groupes de sécurité, journaux de flux) 25 min · étape 12 (transposition) 15 min.
+**Déroulé** : étapes 1 à 5 (pfSense) 35 min · étapes 6 à 8 (strongSwan et tests) 30 min · étape 9 (preuve du chiffrement) 15 min · étape 10 (transposition) 15 min.
 
 > **Instantané conseillé.** Avant de commencer, prenez un instantané de pfSense et de `cloud-gw` depuis le portail (par exemple `avant-tp6`).
 
@@ -20,7 +20,7 @@ On relie le réseau des serveurs du site à un « cloud » privé, à travers «
 | Réseau du cloud (« VPC ») | `cloud-gw`, interface virtuelle `vpc0` | `10.101.1.0/24` |
 | Service applicatif du cloud | `cloud-gw` | `10.101.1.1`, ports 443 (HTTPS) et 22 (SSH) |
 
-Objectif : `srv-int` et le service cloud communiquent **uniquement** à travers un tunnel chiffré ; le cloud ne peut pas ouvrir de connexion vers le site ; côté cloud, un filtrage de type groupe de sécurité ne laisse entrer que le nécessaire.
+Objectif : `srv-int` et le service cloud communiquent **uniquement** à travers un tunnel chiffré ; le cloud ne peut pas ouvrir de connexion vers le site.
 
 ## Étape 1 — Générer la clé partagée
 
@@ -356,12 +356,14 @@ Revenez sur `cloud-gw` et arrêtez la capture avec `Ctrl+C`. Puis, dans un termi
 
 ```bash
 scp formation@10.10.0.30:/tmp/tunnel.pcap ~/livrables/tp6-tunnel.pcap
+scp formation@10.10.0.30:tp6-sas.txt ~/livrables/
 wireshark ~/livrables/tp6-tunnel.pcap &
 ```
 
 **Ligne par ligne.**
 
 - `scp formation@10.10.0.30:/tmp/tunnel.pcap ~/livrables/tp6-tunnel.pcap` : rapatrie la capture sur la Kali.
+- `scp formation@10.10.0.30:tp6-sas.txt ~/livrables/` : rapatrie aussi l'état du tunnel enregistré à l'étape 7.
 - `wireshark … &` : l'ouvre dans Wireshark, en arrière-plan.
 
 Dans Wireshark, appliquez successivement ces filtres d'affichage :
@@ -370,116 +372,9 @@ Dans Wireshark, appliquez successivement ces filtres d'affichage :
 - `isakmp` : la négociation IKE, s'il y en a eu pendant la capture (UDP 500).
 - `tcp.port == 22` : votre propre session SSH de la Kali vers `cloud-gw`, qui ne passe **pas** par le tunnel (traduite par pfSense en 10.10.0.20). Ici, on lit les ports, le protocole et la taille des échanges : la comparaison montre ce que le tunnel cache.
 
-> **Sélecteurs et filtrage.** Le tunnel ne protège que `10.1.20.0/24 ↔ 10.101.1.0/24`. Ne déclarez jamais `0.0.0.0/0` « pour que ça marche ». Et IPsec chiffre mais ne filtre pas : les règles S6 et I1 côté site, et les groupes de sécurité côté cloud (étape suivante), restent indispensables.
+> **Sélecteurs et filtrage.** Le tunnel ne protège que `10.1.20.0/24 ↔ 10.101.1.0/24`. Ne déclarez jamais `0.0.0.0/0` « pour que ça marche ». Et IPsec chiffre mais ne filtre pas : les règles S6 et I1 côté site restent indispensables, et, dans un vrai cloud, les groupes de sécurité côté cloud (module 6).
 
-## Étape 10 — Groupes de sécurité façon cloud (nftables)
-
-**Pourquoi.** Dans un cloud public, chaque machine est protégée par un **groupe de sécurité** : un filtrage à états, refus par défaut, qui n'accepte que des flux explicitement listés. On l'imite avec nftables, le pare-feu du noyau Linux. Le service cloud étant hébergé sur `cloud-gw` même, on filtre le trafic **entrant** sur la machine (chaîne `input`) ; dans un vrai cloud, les mêmes règles s'appliqueraient à chaque instance.
-
-Sur `cloud-gw` :
-
-```bash
-sudo tee /etc/nftables.conf > /dev/null <<'EOF'
-#!/usr/sbin/nft -f
-flush ruleset
-table inet cloudsg {
-  chain input {
-    type filter hook input priority 0; policy drop;
-    ct state established,related accept
-    iif "lo" accept
-    ip saddr 10.10.0.20 udp dport { 500, 4500 } accept
-    ip saddr 10.10.0.20 ip protocol esp accept
-    ip saddr 10.1.20.0/24 ip daddr 10.101.1.1 tcp dport 443 accept
-    ip saddr 10.1.20.10 ip daddr 10.101.1.1 tcp dport 22 accept
-    ip saddr 10.10.0.20 ip daddr 10.10.0.30 tcp dport 22 accept
-    limit rate 10/minute log group 0 prefix "cloudsg-drop: "
-  }
-}
-EOF
-sudo nft -c -f /etc/nftables.conf
-sudo nft -f /etc/nftables.conf
-sudo nft list ruleset
-```
-
-**Ligne par ligne.**
-
-- `sudo tee /etc/nftables.conf … <<'EOF'` : écrit le jeu de règles dans le fichier que le service `nftables` charge à chaque démarrage : il survivra à un redémarrage. `'EOF'` entre apostrophes : le texte est copié tel quel.
-- `#!/usr/sbin/nft -f` : première ligne du fichier ; elle indique qu'il se charge avec `nft -f`.
-- `flush ruleset` : vide toutes les règles avant de charger celles du fichier ; on peut ainsi recharger le fichier autant de fois que nécessaire sans doublons.
-- `table inet cloudsg` : une table nommée `cloudsg`, valable pour IPv4 et IPv6 (`inet`).
-- `chain input { type filter hook input priority 0; policy drop; }` : une chaîne qui examine tout paquet destiné à la machine elle-même ; ce qui n'est pas explicitement accepté est **refusé** (`policy drop`), comme dans un groupe de sécurité.
-- `ct state established,related accept` : accepte les réponses aux connexions déjà acceptées (filtrage à états). C'est aussi ce qui garde votre session SSH ouverte au chargement.
-- `iif "lo" accept` : le trafic interne de la machine.
-- `ip saddr 10.10.0.20 udp dport { 500, 4500 } accept` : la négociation IKE, seulement depuis pfSense.
-- `ip saddr 10.10.0.20 ip protocol esp accept` : les paquets chiffrés du tunnel, seulement depuis pfSense.
-- `ip saddr 10.1.20.0/24 ip daddr 10.101.1.1 tcp dport 443 accept` : groupe « application » : HTTPS depuis le réseau SRV du site.
-- `ip saddr 10.1.20.10 ip daddr 10.101.1.1 tcp dport 22 accept` : SSH, seulement depuis `srv-int`, l'hôte d'administration du site.
-- `ip saddr 10.10.0.20 ip daddr 10.10.0.30 tcp dport 22 accept` : l'administration de la passerelle depuis la Kali, que pfSense traduit en 10.10.0.20.
-- `limit rate 10/minute log group 0 prefix "cloudsg-drop: "` : tout ce qui arrive à cette ligne va être refusé par la politique ; on en journalise au plus 10 par minute, vers le service `ulogd`, avec un préfixe reconnaissable. La limite évite qu'un balayage remplisse le disque.
-- `sudo nft -c -f /etc/nftables.conf` : **vérifie** la syntaxe sans rien appliquer (`-c`, *check*). Aucune sortie : le fichier est correct.
-- `sudo nft -f /etc/nftables.conf` : applique le jeu de règles.
-- `sudo nft list ruleset` : affiche les règles réellement en place.
-
-> **La règle ESP est indispensable.** Le filtre voit chaque paquet deux fois : d'abord chiffré (protocole ESP), puis déchiffré (avec les adresses internes). Sans `ip protocol esp accept`, les paquets sont refusés **avant** déchiffrement : la négociation réussit (IKE passe en UDP), mais aucun trafic ne traverse le tunnel.
-
-> **Si vous vous êtes enfermé dehors**, ouvrez la console de `cloud-gw` dans le portail (l'équivalent de la console série d'un fournisseur cloud) et tapez `sudo nft flush ruleset`.
-
-Vérifiez que les flux attendus passent toujours, depuis la session sur `srv-int` :
-
-```bash
-curl -k https://10.101.1.1
-ssh formation@10.101.1.1 hostname
-```
-
-Copiez le jeu de règles pour le livrable, depuis un terminal de la Kali :
-
-```bash
-scp formation@10.10.0.30:/etc/nftables.conf ~/livrables/tp6-nftables.conf
-scp formation@10.10.0.30:tp6-sas.txt ~/livrables/
-```
-
-## Étape 11 — Journaux de flux
-
-**Pourquoi.** Les journaux de flux (*VPC Flow Logs* chez AWS, *VNet Flow Logs* chez Azure) enregistrent les connexions acceptées et refusées. Ce sont souvent les seules traces disponibles après un incident dans le cloud. Ici, le service `ulogd2` reçoit les paquets journalisés par nftables (groupe 0) et les écrit dans un fichier.
-
-Sur `cloud-gw`, suivez le journal :
-
-```bash
-sudo tail -f /var/log/ulog/syslogemu.log
-```
-
-Depuis `ext` (ouvrez une session depuis un troisième terminal de la Kali), tentez un accès interdit :
-
-```bash
-ssh formation@10.10.0.40
-nc -vz -w 3 10.10.0.30 22
-```
-
-**Ligne par ligne.**
-
-- `sudo tail -f /var/log/ulog/syslogemu.log` : affiche la fin du journal et les nouvelles lignes au fil de l'eau.
-- `nc -vz -w 3 10.10.0.30 22` : depuis `ext`, une machine quelconque d'Internet, tente le SSH de la passerelle cloud. Échec attendu (`timed out`).
-
-Une ligne apparaît dans le journal : `cloudsg-drop: IN=ens18 … SRC=10.10.0.40 DST=10.10.0.30 … PROTO=TCP SPT=… DPT=22 … SYN`. Lisez-la : carte d'entrée, source, destination, protocole, ports, drapeau SYN (tentative d'ouverture). Arrêtez le suivi avec `Ctrl+C`.
-
-Journalisez aussi les connexions **acceptées** vers le service HTTPS :
-
-```bash
-sudo sed -i 's|tcp dport 443 accept|tcp dport 443 log group 0 prefix "cloudsg-ok: " accept|' /etc/nftables.conf
-sudo nft -f /etc/nftables.conf
-sudo tail -f /var/log/ulog/syslogemu.log
-```
-
-**Ligne par ligne.**
-
-- `sudo sed -i 's|…|…|' /etc/nftables.conf` : modifie le fichier sur place (`-i`) : la règle HTTPS journalise désormais chaque nouvelle connexion avant de l'accepter, avec le préfixe `cloudsg-ok: `.
-- `sudo nft -f /etc/nftables.conf` : recharge le jeu de règles.
-
-Depuis `srv-int`, relancez `curl -k https://10.101.1.1` : une ligne `cloudsg-ok:` apparaît, avec `SRC=10.1.20.10 DST=10.101.1.1 … DPT=443`. Seule l'ouverture de la connexion est journalisée : les paquets suivants sont acceptés plus haut par `ct state established`. Capturez l'écran avec une ligne `cloudsg-ok` et une ligne `cloudsg-drop`.
-
-> **Si le journal reste vide** : `systemctl is-active ulogd2` doit répondre `active` ; sinon `sudo systemctl restart ulogd2`.
-
-## Étape 12 — Transposer vers AWS et Azure
+## Étape 10 — Transposer vers AWS et Azure
 
 **Pourquoi.** Les mécanismes de ce TP sont ceux des clouds publics, sous d'autres noms. Savoir faire la correspondance permet de relire une architecture cloud, ou de l'auditer, avec les réflexes acquis sur un pare-feu classique.
 
@@ -489,10 +384,10 @@ Créez `~/livrables/tp6-transposition.md` et complétez ce tableau :
 |---|---|---|
 | Tunnel IPsec pfSense ↔ `cloud-gw` | | |
 | VPC 10.101.1.0/24 | | |
-| Règle « HTTPS depuis le réseau SRV » | | |
-| Règle « SSH depuis `srv-int` seulement » | | |
-| `policy drop` (refus par défaut en entrée) | | |
-| Journaux `cloudsg-ok` / `cloudsg-drop` | | |
+| Règle S6 : seul `srv-int` utilise le tunnel, en 443 et 22 | | |
+| Règle I1 : le cloud n'ouvre pas de connexion vers le site | | |
+| Filtrage de l'instance cloud elle-même (non réalisé ici) : HTTPS depuis le site, SSH depuis `srv-int` seulement, refus par défaut | | |
+| Journal des refus (règle I1 journalisée) | | |
 | Console de `cloud-gw` dans le portail | | |
 
 > **Défi ★.** Remplacez l'authentification par clé partagée par des **certificats** : une AC du laboratoire signe un certificat pour chaque passerelle (*System → Cert. Manager* côté pfSense, `/etc/swanctl/x509*` côté `cloud-gw`, `auth = pubkey`). Pourquoi les certificats sont-ils préférés à une PSK dans un déploiement réel, en particulier quand le nombre de sites augmente ?
@@ -501,8 +396,6 @@ Créez `~/livrables/tp6-transposition.md` et complétez ce tableau :
 
 - `tp6-sas.txt` et la capture d'écran de *Status → IPsec* ;
 - `tp6-tunnel.pcap` : la capture prouvant le chiffrement ;
-- `tp6-nftables.conf` : le jeu de règles ;
-- la capture d'écran du journal de flux ;
 - `tp6-transposition.md`.
 
 ## Questions de validation

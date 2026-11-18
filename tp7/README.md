@@ -90,7 +90,7 @@ logger -p auth.warning "TP7 test de transfert depuis web"
 - `sudo systemctl restart rsyslog` : recharge rsyslog avec la nouvelle règle.
 - `logger -p auth.warning "…"` : écrit un message de test dans le journal local, catégorie `auth`, gravité `warning` ; rsyslog le transfère aussitôt.
 
-TCP plutôt qu'UDP : en UDP, un message perdu l'est sans que personne le sache ; en TCP, l'émetteur sait si le collecteur a reçu. `cloud-gw`, lui, est hors du site : ses journaux de flux restent « chez le fournisseur » (TP6), comme dans un vrai cloud.
+TCP plutôt qu'UDP : en UDP, un message perdu l'est sans que personne le sache ; en TCP, l'émetteur sait si le collecteur a reçu. `cloud-gw`, lui, est hors du site : ses journaux restent « chez le fournisseur », comme dans un vrai cloud.
 
 ## Étape 4 — Vérifier les horloges
 
