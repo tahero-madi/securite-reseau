@@ -42,8 +42,9 @@ Règle ajoutée :
 - `snmpwalk -v3 … system` renvoie `sysDescr`, `sysUpTime`, `sysContact`, `sysName`, `sysLocation` ; la requête v2c `public` aboutit à `Timeout`. Un équipement qui « supporte SNMP » ne supporte pas forcément SNMPv3 : le service intégré de pfSense (bsnmpd) ne fait que v1/v2c.
 - *Host* `pfSense` : icône `SNMP` verte ; avec NET-SNMP, les éléments du modèle propres au filtre de pfSense (MIB `BEGEMOT-PF-MIB`) restent *Not supported*, les interfaces fonctionnent.
 - *Host* `srv-int` gris ou rouge : nom différent de `srv-int`, ou flux 10050 (L4) / 10051 (S4) fermés. Dans le journal de l'agent (`/var/log/zabbix/zabbix_agentd.log` sur `srv-int`) : `cannot connect to [[10.1.10.10]:10051]` (S4 manquante) ou `host [srv-int] not found` (nom différent).
-- Déclencheur : `count(/srv-int/log[/var/log/auth.log,"Failed (password|keyboard-interactive)"],2m)>=5` passe en *Problem* environ une minute après la boucle `sshpass`. S'il reste à *OK* :
-  - filtre limité à `Failed password` : sur la plateforme, `sshd` accepte la méthode *keyboard-interactive*, que le client SSH préfère ; les échecs s'écrivent alors `Failed keyboard-interactive/pam for …` et ne correspondent pas (vérifier avec `sudo grep sshd /var/log/auth.log | tail`) ;
+- Déclencheur : `count(/srv-int/log[/var/log/auth.log,"sshd:auth.*authentication failure"],2m)>=5` passe en *Problem* environ une minute après la boucle `sshpass`. S'il reste à *OK* :
+  - filtre sur `Failed password` (ou `Failed keyboard-interactive`) : sur la plateforme, `sshd` utilise PAM en *keyboard-interactive* et, avec un seul essai par connexion, le client coupe avant que la ligne `Failed …` soit écrite. Seule la ligne `pam_unix(sshd:auth): authentication failure … rhost=10.1.10.10 user=formation` est fiable, d'où la clé `log[/var/log/auth.log,"sshd:auth.*authentication failure"]` (vérifier avec `sudo journalctl -u ssh --since "-15 min"`) ;
+  - les lignes `Connection closed by 10.1.20.254` toutes les dix secondes environ sont des sondes de la plateforme sur le port 22 : sans rapport avec le test ;
   - élément en type passif au lieu d'actif, ou *Type of information* laissé sur *Numeric* (l'élément devient *Not supported*) ;
   - flux 10051 (S4) fermé ou nom d'hôte différent de `srv-int` : l'agent actif ne reçoit pas la liste de ses éléments.
 
