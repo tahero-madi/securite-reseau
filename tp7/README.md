@@ -176,22 +176,22 @@ Ouvrez Firefox sur `http://127.0.0.1:8080`, connectez-vous avec `Admin` / `zabbi
 
 1. *Services → SNMP* : vérifiez que *Enable* est **décoché** (le service intégré occuperait le port 161).
 2. *System → Package Manager → Available Packages* : installez **NET-SNMP** (une minute environ).
-3. *Services → SNMP (NET-SNMP)* :
-   - onglet *General* : *Enable* coché ;
-   - onglet *Host Information* : renseignez *System Location* (`Labo 3-020`) et *System Contact* ;
-   - onglet *SNMPv3 Users* (ou *Users*), *Add* : *Username* `zbx-ro`, *Entry Type* `Read Only`, *Authentication Type* `SHA`, *Password* `Zbx-Auth-3020`, *Privacy Protocol* `AES`, *Privacy Passphrase* `Zbx-Priv-3020` ;
-   - onglet *Communities* : **aucune** communauté ;
-   - onglet *SNMP Daemon* (ou *Interface Binding*) : écoute sur `LAN` seulement ;
-   - *Save* à chaque onglet.
+3. *Services → SNMP (NET-SNMP)*. Le paquet a deux parties : **snmpd**, l'agent qui répond aux interrogations (c'est lui qu'on configure), et **snmptrapd**, qui reçoit des alertes SNMP (*traps*) d'autres équipements (inutile ici, à laisser désactivé). Si la page affiche *SNMP Trap Daemon Configuration*, vous êtes dans la seconde : cliquez sur l'onglet *[SNMP Daemon]*. Dans la partie snmpd :
+   - onglet *General* : cochez *Enable snmpd* ; dans *Interface Binding*, une seule ligne : *Transport Type* `UDP`, *IP Address/Hostname* `10.1.10.1`, *Port* `161` ; *Save* ;
+   - onglet *Host Information* : *Location* `Labo 3-020`, *Contact* votre nom ; *Save* ;
+   - onglet *Users*, *Add* : *Username* `zbx-ro`, *Entry Type* `User Entry (USM)`, *Read/Write Access* `Read Only`, *Authentication Type* `SHA`, *Password* `Zbx-Auth-3020`, *Privacy Protocol* `AES`, *Passphrase* `Zbx-Priv-3020`, *Min USM Security Level* `Private (Encryption Required)` ; *Save* ;
+   - onglet *Communities* : la liste doit rester **vide**.
 4. *Firewall → Rules → LAN*, *Add* (flèche vers le haut) : *Pass*, *Protocol* `UDP`, *Source* `H_poste_admin`, *Destination* `LAN address`, port `161`, *Description* `L11 Supervision SNMPv3 de pfSense`. Vérifiez que L11 est au-dessus de L10, *Save*, *Apply Changes*.
 
 **Ligne par ligne.**
 
+- *Interface Binding* `UDP` `10.1.10.1` `161` : l'agent n'écoute que sur l'adresse LAN de pfSense, port 161.
 - Utilisateur `zbx-ro`, `Read Only` : un compte dédié à la supervision, qui ne peut rien modifier.
+- *Min USM Security Level* `Private` : l'agent refuse toute requête de cet utilisateur qui ne serait pas à la fois authentifiée et chiffrée (*authPriv*).
 - `SHA` et son mot de passe : authentification de l'interrogateur (HMAC-SHA).
 - `AES` et sa phrase secrète : chiffrement des échanges.
 - Aucune communauté : ni v1 ni v2c.
-- Écoute sur `LAN` seulement, règle L11 depuis `H_poste_admin` seulement : le service n'est joignable que depuis le superviseur.
+- Écoute sur l'adresse LAN seulement, règle L11 depuis `H_poste_admin` seulement : le service n'est joignable que depuis le superviseur.
 
 Testez depuis un terminal de la Kali :
 
