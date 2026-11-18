@@ -1,6 +1,6 @@
 # TP7 — Supervision et journalisation
 
-**Jour 4, 09:40 · 1 h 15.** Objectifs : centraliser les journaux de pfSense et des serveurs sur un collecteur rsyslog ; superviser pfSense en SNMPv3 et `srv-int` par agent avec Zabbix ; créer une alerte utile à la sécurité et vérifier qu'elle se déclenche.
+**Jour 4, 10:30 · démonstration du formateur (40 min).** L'énoncé complet reste disponible pour refaire le TP après la formation (1 h 15). Objectifs : centraliser les journaux de pfSense et des serveurs sur un collecteur rsyslog ; superviser pfSense en SNMPv3 et `srv-int` par agent avec Zabbix ; créer une alerte utile à la sécurité et vérifier qu'elle se déclenche.
 
 **Prérequis** : module 7, TP3 terminé (règles L4 et S4 : flux de l'agent Zabbix), TP5 conseillé (alertes Suricata envoyées au journal système). **Livrable** : preuve de centralisation des journaux, alerte Zabbix déclenchée, dans `~/livrables`.
 

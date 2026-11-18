@@ -2,75 +2,42 @@
 
 > Cherchez d'abord par vous-même : ce corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP.
 
-**Préparation.** Le mandat type `~/TP/mandat-audit-TP8.pdf` (périmètre, autorisations, interdictions, contacts, confidentialité) est un objectif pédagogique en soi : pas d'audit sans mandat. Selon l'avancement des TP précédents, l'état de durcissement varie d'un apprenant à l'autre ; c'est voulu : chacun audite l'état réel de son laboratoire. Le formateur joue le commanditaire, en particulier pour donner (ou non) l'accord de l'étape 12.
+**Préparation.** Le dossier `tp8/dossier/dossier-audit-3020.zip` a été collecté sur le laboratoire de référence du formateur, par un script lancé depuis la Kali (configuration de pfSense sans secrets, balayages depuis `ext` et depuis le LAN avec la règle L5 activée le temps de la collecte, `testssl.sh`, `ssh-audit`, `sshd -T`, SNMP, LDAP, RADIUS, IPsec, journalisation, cloisonnement et test de contournement par le `.254`). Les constats ci-dessous sont ceux attendus sur une infrastructure dans l'état de fin de formation ; vérifier chacun dans le dossier réellement distribué avant la correction, certains peuvent différer selon ce qui a été corrigé pendant les TP.
 
-## Étapes 1 à 3 — Mandat, préparation, collecte
+**Gestion du temps (1 h).** Annoncer dès le départ : six constats au maximum, une phrase par case. Passer dans les rangs au bout de 15 minutes : un stagiaire qui n'a encore rien noté est perdu dans les fichiers 01 et 02 ; le renvoyer vers 03 et 13.
 
-Attendus : périmètre et exclusions relevés dans le rapport (section 2) ; dossier `preuves/` créé dès le début ; sauvegarde XML de pfSense traitée comme confidentielle. Un auditeur qui teste 10.10.0.1 ou une adresse en `.254` sans accord est hors mandat : à relever à l'oral.
+## Constats attendus
 
-## Étapes 4 à 9 — Architecture et configurations
+| Constat | Preuve | Criticité | Référence | Recommandation |
+|---|---|---|---|---|
+| Le dépôt `.git` du site est lisible depuis Internet et contient un identifiant en clair (`deploy:Deploy2019!`) | 03 (`curl …/.git/config`) | Critique | ISO 27002 8.12 ; 8.4 | Supprimer `/var/www/html/.git`, révoquer le compte `deploy`, interdire les fichiers cachés dans nginx (`location ~ /\. { deny all; }`) |
+| Une application de test vulnérable (DVWA), aux identifiants par défaut, est publiée sur Internet | 03 (`/dvwa/login.php` → `200`) | Critique | PCI DSS 2.2.2 ; ISO 27002 8.9 | Retirer l'application du serveur publié |
+| Services en clair et vulnérables sur `web` : FTP, Telnet (CVE-2026-24061, au catalogue KEV), versions sans correctifs | 05 ; rapports TP2 | Critique ou Majeure | PCI DSS 2.2.4, 6.3.3 ; ISO 27002 8.8 | Désinstaller FTP et Telnet ; appliquer les correctifs priorisés au TP2 |
+| TLS 1.0 et 1.1 acceptés sur le service publié ; certificat autosigné | 04, 06 | Majeure | PCI DSS 4.2.1 ; ISO 27002 8.24 | `ssl_protocols TLSv1.2 TLSv1.3;` ; certificat d'une AC reconnue |
+| `web` répond à la communauté SNMP `public` | 08 | Majeure | ISO 27002 8.21 | Désactiver v1/v2c ; SNMPv3 *authPriv* depuis 10.1.10.10 seulement |
+| La liste des comptes de l'annuaire est lisible sans authentification ; LDAP en clair encore accepté | 09 | Majeure | ISO 27002 5.15, 8.24 | ACL `by anonymous auth` ; retirer `ldap:///` ou exiger TLS |
+| Authentification SSH par mot de passe sur les serveurs | 07 (`passwordauthentication yes` ou `kbdinteractiveauthentication yes`) | Majeure | ISO 27002 8.5 | Clés uniquement ; double authentification pour l'administration |
+| Poste d'administration dans le réseau des utilisateurs ; pas de double authentification sur pfSense | 01 (`H_poste_admin` dans `N_LAN`) | Majeure | ISO 27002 8.22 ; PCI DSS 8.4 | Zone d'administration dédiée ; MFA |
+| Avec deux routes ajoutées, `web` joint `srv-int:22` par l'équipement de l'hébergeur en `.254`, sans passer par pfSense | 13 (`nc` réussi, `traceroute` : un saut `10.1.30.254`) | Majeure | ISO 27002 8.22, 5.21 ; PCI DSS 11.4.5 | Exiger de l'hébergeur des réseaux isolés en couche 3 (clause contractuelle) ; filtrage local sur chaque serveur ; surveillance des tables de routage |
+| Selon l'état de la plateforme : anti-verrouillage actif (tout le LAN joint l'interface de pfSense), redirection temporaire du port 80 oubliée, règle L5 restée active | 01, 02, 03 | Majeure | PCI DSS 1.2 | Désactiver l'anti-verrouillage au profit de L1 ; supprimer les règles temporaires |
 
-Résultats typiques, selon ce que l'apprenant a durci ou non :
+**Points positifs attendus** : refus par défaut journalisé sur LAN, SRV et DMZ ; la DMZ ne joint ni la zone serveurs ni le poste d'administration, et ne sort pas librement sur Internet (sans le `.254`) ; zones internes non joignables directement depuis Internet ; tunnel IPsec conforme (IKEv2, AES-256-GCM, groupe 19, PFS, sélecteurs restreints) ; journalisation centralisée et horodatée ; pfSense supervisé en SNMPv3 ; RADIUS avec `Message-Authenticator` et secret long.
 
-| Contrôle | Commande ou lieu | Résultat attendu sur un laboratoire non durci |
-|---|---|---|
-| Règles | `pfctl -vsr` | Refus par défaut journalisé sur LAN, SRV, DMZ ; L5 désactivée (compteurs à 0) ; redirection du port 80 du TP5 éventuellement oubliée |
-| TLS de `web` | `testssl.sh` | `TLS 1` et `TLS 1.1` **offered**, certificat autosigné (*Chain of trust: NOT ok*) |
-| SSH | `ssh-audit`, `sshd -T` | Quelques algorithmes en `[warn]` ; `passwordauthentication yes` sur tous les serveurs |
-| IPsec | `swanctl --list-sas` | Conforme (point positif) |
-| SNMP | `snmpwalk -v2c -c public` | `web` répond : communauté par défaut, en clair |
-| LDAP | `ldapsearch -x` sans `-D` | Les trois personnes s'affichent : lecture anonyme (ACL par défaut d'OpenLDAP sous Ubuntu) |
-| LDAP | `/etc/default/slapd` | `ldap:///` présent : bind en clair possible sur 389 |
-| RADIUS | `clients.conf` | `require_message_authenticator = yes`, secret de 44 caractères (si le TP4 a été suivi) |
-
-## Étapes 10 à 13 — Vérification active
-
-| Test | Attendu |
-|---|---|
-| `nmap` depuis `ext` vers 10.10.0.20 | Seul `443/tcp open` (nginx) ; si 80 répond, la publication temporaire du TP5 n'a pas été retirée |
-| `ext` → 10.1.30.10:443 et 10.1.20.10:22 | `timed out` : refus par défaut du WAN |
-| `web` → `srv-int:22`, `web` → Kali:22 | `timed out` (D4) |
-| Poste utilisateur → `srv-int:22`, → `https://10.1.10.1` | Échec (L10 ; anti-verrouillage désactivé ou restreint au TP3) |
-| `nmap` des zones depuis la Kali | `srv-int` : 22, 389, 636, 10050 (RADIUS, en UDP, n'apparaît pas dans ce balayage TCP) ; `web` : 21, 22, 23, 80, 443, 3000, selon les remédiations du TP2 |
-| Contournement par `.254` | `nc` réussit ; `traceroute` : un seul saut, `10.1.30.254` |
-
-La publication en 443 expose aussi tout ce que sert `web` en HTTPS : depuis `ext`, `curl -sk https://10.10.0.20/.git/config` renvoie l'identifiant `deploy:Deploy2019!` (déjà relevé au TP5), et DVWA est joignable avec ses identifiants par défaut. Un bon auditeur fait le lien entre le port « autorisé » et ce qu'il publie réellement.
-
-Remise en ordre attendue : L5 désactivée, routes `.254` retirées, adresse 10.1.10.20 retirée.
-
-## Étapes 14 et 15 — Constats typiques attendus
-
-| Constat | Criticité | Référentiels | Recommandation |
-|---|---|---|---|
-| Dépôt `.git` exposé sur Internet, avec un identifiant en clair | Critique | ISO 27002 8.4, 8.12 ; PCI DSS 6.4 | Supprimer `/var/www/html/.git`, révoquer le compte `deploy`, interdire les fichiers cachés dans nginx (`location ~ /\. { deny all; }`) |
-| Application de test (DVWA) avec identifiants par défaut, publiée sur Internet | Critique | ISO 27002 8.5, 8.9 ; PCI DSS 2.2.2 | Retirer l'application du serveur publié ; changer tout identifiant par défaut |
-| Services anciens sur `web` (FTP, Telnet), versions vulnérables | Critique ou Majeure selon le TP2 | ISO 27002 8.8, 8.22 ; PCI DSS 2.2.4, 6.3.3 | Désinstaller ; appliquer les correctifs du TP2 |
-| TLS 1.0 et 1.1 acceptés sur le service publié, certificat autosigné | Majeure | ISO 27002 8.24 ; PCI DSS 4.2.1 ; guide ANSSI TLS | `ssl_protocols TLSv1.2 TLSv1.3;`, certificat d'une AC reconnue |
-| SNMP v2c `public` sur `web` | Majeure | ISO 27002 8.20, 8.21 | Désactiver v2c ; SNMPv3 *authPriv* depuis 10.1.10.10 seulement |
-| Annuaire lisible anonymement, bind en clair accepté | Majeure | ISO 27002 5.15, 8.3, 8.24 | ACL `olcAccess` : `by anonymous auth` seulement ; retirer `ldap:///` ou exiger TLS (`olcSecurity: tls=1`) |
-| Authentification SSH par mot de passe | Majeure | ISO 27002 8.5 ; PCI DSS 8.3 | Clés uniquement (`PasswordAuthentication no`), MFA pour l'administration |
-| Poste d'administration dans le LAN des utilisateurs | Majeure | Guide ANSSI d'administration sécurisée ; ISO 27002 8.22 | Zone d'administration dédiée, poste dédié |
-| Aucune double authentification sur l'administration de pfSense | Majeure | ISO 27002 8.5 ; PCI DSS 8.4 | MFA (RADIUS + OTP, par exemple) |
-| Mot de passe par défaut de Zabbix, si non changé au TP7 | Majeure | ISO 27002 5.17 | Changer, comptes nominatifs |
-| Équipement de l'hébergeur présent dans toutes les zones et capable de router entre elles | Majeure | ISO 27002 8.22, 5.21, 5.22 ; PCI DSS 1.2, 11.4.5 | Voir ci-dessous |
-| Tunnel IPsec conforme, journalisation centralisée en place | Observation (positive) | — | Maintenir ; passer aux certificats |
-
-**Le contournement par `.254`.** Avec deux routes temporaires, `web` joint `srv-int:22` sans passer par pfSense : la segmentation repose sur la seule configuration des routes de chaque machine, qu'un attaquant administrateur d'une machine peut modifier. Recommandations : exiger de l'hébergeur des réseaux réellement isolés en couche 3 (ou un filtrage sur son routeur), et l'inscrire dans la convention de service (responsabilité partagée) ; à défaut, un filtrage local sur chaque serveur (nftables, refus par défaut en entrée) et une surveillance des tables de routage. Lien avec PCI DSS 11.4.5 : la segmentation doit être **testée**, pas présumée.
+**Sur le `.254`.** La segmentation repose en réalité sur la table de routage de chaque machine, qu'un attaquant administrateur d'une machine peut modifier. La correction appartient à l'hébergeur (responsabilité partagée) : elle se traite par contrat et par exigence de preuve (test de segmentation), pas seulement par configuration côté client. C'est le constat le plus formateur du dossier.
 
 **Attendus de rédaction.**
 
-- Distinguer fait, risque et recommandation.
-- Une preuve pour chaque constat (fichier de `preuves/`).
-- Des recommandations concrètes et vérifiables (« désactiver SNMP v2c sur `web`, n'autoriser SNMPv3 *authPriv* que depuis 10.1.10.10 », pas « durcir SNMP »).
-- Une synthèse pour la direction sans jargon, qui parle d'impact métier (fuite de données clients, arrêt de service, sanction).
-- Un tri par criticité et un plan d'action réaliste (effort, responsable, échéance).
-- Pénaliser les rapports « copier-coller de scanner », sans priorisation ni preuve.
+- Un constat est un fait prouvé, avec le nom du fichier.
+- Le risque dit ce qui peut arriver, et à qui.
+- La recommandation est précise et vérifiable.
+- La synthèse parle d'impact métier, sans jargon.
+- Pénaliser les listes sans priorisation, ou les constats sans preuve.
 
 ## Questions
 
 1. Le constat est le fait observé et prouvé ; le risque est la conséquence possible (vraisemblance × impact) ; la recommandation est l'action corrective concrète.
-2. Une segmentation documentée mais mal filtrée, ou contournable (`.254`), laisse des chemins ouverts : seul le test révèle l'écart entre le schéma et la réalité.
-3. Réponse individuelle : vérifier la cohérence constat ↔ preuve ↔ référentiel.
+2. L'équipement appartient à l'hébergeur, hors du périmètre du client : le tester sans accord serait une intrusion dans un système tiers. La correction lui revient (isolation réelle des réseaux), à exiger contractuellement ; le client peut seulement compenser (filtrage local).
+3. Les règles peuvent être correctes et la segmentation contournable par un autre chemin (`.254`), ou une règle temporaire oubliée : seul le test montre l'écart entre le schéma et la réalité.
 
 ---
 
@@ -82,10 +49,10 @@ Remise en ordre attendue : L5 désactivée, routes `.254` retirées, adresse 10.
 | TP2 rapport de vulnérabilités | Priorisation CVSS/EPSS/KEV, remédiation vérifiée | /10 |
 | TP3 matrice + règles | Refus par défaut, tests de flux concluants | /10 |
 | TP4 RADIUS/LDAP | Chaîne fonctionnelle, durcissement, LDAPS | /10 |
-| TP5 Suricata | Règles maison, blocage IPS, réglage justifié | /10 |
-| TP6 IPsec + SG | Tunnel conforme, chiffrement prouvé, transposition | /10 |
-| TP7 supervision et journalisation | Centralisation horodatée, SNMPv3, déclencheur testé | /10 |
-| TP8 rapport d'audit | Constats prouvés et cotés, plan d'action, synthèse | /20 |
+| TP5 Suricata | Règles maison, blocage IPS | /10 |
+| TP6 IPsec (démonstration) | — | — |
+| TP7 supervision et journalisation (démonstration) | — | — |
+| TP8 rapport d'audit sur dossier | Constats prouvés et cotés, plan d'action, synthèse | /20 |
 | QCM final | 30 questions | /30 |
 
 ---

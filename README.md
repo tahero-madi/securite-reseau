@@ -44,10 +44,10 @@ Cherchez d'abord par vous-même : le corrigé sert à vous débloquer, ou à vé
 | Jour 2, 13:40 | [TP4 — Authentification réseau : LDAP, RADIUS, 802.1X](tp4/README.md) | 2 h 10, pause incluse |
 | **Jour 3 · Détecter, chiffrer, hybrider** | | |
 | Jour 3, 09:50 | [TP5 — IDS/IPS avec Suricata sur pfSense](tp5/README.md) | 1 h |
-| Jour 3, 13:40 | [TP6 — Interconnexion hybride : VPN IPsec](tp6/README.md) | 1 h 45, pause incluse |
 | **Jour 4 · Surveiller, réagir, auditer** | | |
-| Jour 4, 09:40 | [TP7 — Supervision et journalisation](tp7/README.md) | 1 h 15 |
-| Jour 4, 13:35 | [TP8 — Audit de sécurité réseau et rapport](tp8/README.md) | 1 h 45, pause incluse |
+| Jour 4, 09:00 | [TP6 — Interconnexion hybride : VPN IPsec](tp6/README.md) : démonstration du formateur | 30 min |
+| Jour 4, 10:30 | [TP7 — Supervision et journalisation](tp7/README.md) : démonstration du formateur | 40 min |
+| Jour 4, 13:00 | [TP8 — Audit de sécurité réseau sur dossier](tp8/README.md) | 1 h |
 
 En cas de problème : [En cas de blocage](en-cas-de-blocage.md).
 

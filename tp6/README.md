@@ -1,6 +1,6 @@
 # TP6 — Interconnexion hybride : VPN IPsec
 
-**Jour 3, 13:40 · 1 h 45, pause incluse.** Objectifs : monter un tunnel IPsec IKEv2 conforme aux recommandations de l'ANSSI entre pfSense (le site) et `cloud-gw` (la passerelle du « cloud ») ; filtrer ce qui entre dans le tunnel et ce qui en sort ; prouver le chiffrement ; transposer la configuration vers AWS et Azure.
+**Jour 4, 09:00 · démonstration du formateur (30 min).** L'énoncé complet reste disponible pour refaire le TP après la formation (1 h 45). Objectifs : monter un tunnel IPsec IKEv2 conforme aux recommandations de l'ANSSI entre pfSense (le site) et `cloud-gw` (la passerelle du « cloud ») ; filtrer ce qui entre dans le tunnel et ce qui en sort ; prouver le chiffrement ; transposer la configuration vers AWS et Azure.
 
 **Prérequis** : modules 5 et 6, TP3 terminé (règles L4 et L8 : la Kali joint `srv-int` et `cloud-gw` en SSH). **Livrable** : état du tunnel, capture prouvant le chiffrement, tableau de transposition, dans `~/livrables`.
 
