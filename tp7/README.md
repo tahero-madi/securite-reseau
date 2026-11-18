@@ -46,6 +46,12 @@ Gardez cette session ouverte.
 | *Remote log servers* | `10.1.20.10:514` |
 | *Remote Syslog Contents* | `Everything` |
 
+Puis, plus haut sur la même page, section *General Logging Options* :
+
+| Champ | Valeur |
+|---|---|
+| *Log Message Format* | `syslog (RFC 5424, with RFC 3339 microsecond-precision timestamps)` |
+
 *Save*.
 
 **Ligne par ligne.**
@@ -53,6 +59,7 @@ Gardez cette session ouverte.
 - *Source Address* `SRV` : pfSense envoie ses journaux depuis son adresse sur le réseau SRV (10.1.20.1), la plus proche du collecteur.
 - *Remote log servers* : le collecteur, port 514 ; pfSense émet en UDP.
 - *Everything* : tous les journaux, dont le pare-feu, Suricata, IPsec et les authentifications.
+- *Log Message Format* RFC 5424 : chaque message porte le nom de pfSense et une heure **avec son fuseau** (`+01:00`). Le format par défaut (BSD, RFC 3164) n'envoie ni l'un ni l'autre. Le collecteur nomme alors le fichier d'après l'adresse émettrice (`_gateway.log` : c'est le nom que `srv-int` donne à sa passerelle par défaut), et il lit l'heure locale de pfSense comme si c'était l'heure UTC, d'où une heure d'écart en hiver. Exactement le problème de corrélation de l'étape 4.
 
 Le trafic émis par pfSense lui-même n'est pas soumis aux règles de l'interface SRV : aucune règle à ajouter.
 
@@ -133,16 +140,19 @@ Sur `srv-int` :
 
 ```bash
 sudo ls -l /var/log/remote/
-sudo grep -h ',10.1.30.10,' /var/log/remote/pfSense*.log | tail -n 3
+sudo grep -h 'filterlog' /var/log/remote/*.log | grep ',10.1.10.10,10.1.30.10,' | tail -n 3
 sudo grep -h -e 'inconnu' -e 'TP7' /var/log/remote/web.log | tail -n 5
 ```
 
 **Ligne par ligne.**
 
-- `sudo ls -l /var/log/remote/` : un fichier par machine émettrice. Le nom du fichier de pfSense dépend de son nom d'hôte (en général `pfSense.log`) : adaptez les commandes suivantes si besoin.
-- `sudo grep -h ',10.1.30.10,' /var/log/remote/pfSense*.log` : cherche les lignes du pare-feu qui mentionnent `web`. Les journaux du filtre (`filterlog`) sont des champs séparés par des virgules : numéro de règle, interface, `match`, `block` ou `pass`, sens, version IP, puis protocole, source, destination, ports. Repérez `block`, `10.1.10.10`, `10.1.30.10` et le port `21`.
+- `sudo ls -l /var/log/remote/` : un fichier par machine émettrice : `web.log`, et pour pfSense un fichier à son nom d'hôte (par exemple `pfSense.home.arpa.log`). Un fichier `_gateway.log` contient les messages reçus avant le passage au format RFC 5424.
+- `sudo grep -h 'filterlog' /var/log/remote/*.log` : les lignes du filtre de pfSense, dans tous les fichiers du collecteur.
+- `| grep ',10.1.10.10,10.1.30.10,'` : seulement celles dont la source est la Kali et la destination `web`. Les champs sont séparés par des virgules : numéro de règle, sous-numéro, ancre, identifiant de la règle (*tracker*), carte réseau, `match`, `block` ou `pass`, sens, version IP, … puis protocole, source, destination, ports. Repérez `block`, `10.1.10.10`, `10.1.30.10` et le port `21`.
 - `| tail -n 3` : seulement les trois dernières.
 - `sudo grep -h -e 'inconnu' -e 'TP7' /var/log/remote/web.log` : les lignes de `web` contenant `inconnu` (`Invalid user inconnu from 10.1.10.10`) ou le message de test de l'étape 3.
+
+Vous verrez sans doute aussi des refus de `10.1.30.10` vers une adresse d'Internet, port 443 : c'est `web` qui tente de sortir (mises à jour automatiques, par exemple), et le filtrage sortant de la DMZ l'en empêche. C'est le comportement voulu, et une bonne question pour un analyste : quel programme, sur `web`, essaie de sortir ?
 
 Capturez l'écran : un refus du pare-feu et un événement de `web`, horodatés, au même endroit. C'est votre preuve de centralisation.
 

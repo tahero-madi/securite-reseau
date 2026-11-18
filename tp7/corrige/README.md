@@ -12,7 +12,9 @@ Règle ajoutée :
 |---|---|---|---|---|---|---|
 | D5 | DMZ | Pass | `H_web` | `H_srv_int` | TCP 514 | Journaux de `web` vers le collecteur, au-dessus de D4 |
 
-Résultat attendu sur `srv-int` : `pfSense.log` (ou selon le nom d'hôte de pfSense) et `web.log` dans `/var/log/remote/`. Forme générale d'une ligne du filtre (le nom de la carte dépend de la plateforme) :
+Résultat attendu sur `srv-int` : `web.log` et un fichier au nom d'hôte de pfSense (par exemple `pfSense.home.arpa.log`) dans `/var/log/remote/`. Si pfSense est resté au format BSD (RFC 3164) : le fichier s'appelle `_gateway.log` (le message ne porte pas de nom d'hôte, rsyslog résout l'adresse 10.1.20.1, que systemd-resolved nomme `_gateway`), et les heures de pfSense ont une heure d'avance (heure locale de Paris lue comme UTC). Le passage en RFC 5424 corrige les deux : bon support pour l'étape 4 (horodatage et fuseau).
+
+Les refus `10.1.30.10 → <adresse Internet>:443` qui apparaissent aussi sont des tentatives de sortie de `web` (mises à jour automatiques, par exemple), bloquées par le refus final de la DMZ : le filtrage sortant fonctionne. Faire chercher le programme en cause sur `web` (`sudo ss -tnp`, `systemctl list-timers`). Forme générale d'une ligne du filtre (le nom de la carte dépend de la plateforme) :
 
 ```text
 … pfSense filterlog[…]: 10,,,1000000110,vtnet1,match,block,in,4,0x0,,64,…,tcp,60,10.1.10.10,10.1.30.10,51234,21,0,S,…
