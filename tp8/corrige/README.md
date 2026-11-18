@@ -2,35 +2,51 @@
 
 > Cherchez d'abord par vous-même : ce corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP.
 
-**Préparation.** Le dossier `tp8/dossier/dossier-audit-3020.zip` a été collecté sur le laboratoire de référence du formateur, par un script lancé depuis la Kali (configuration de pfSense sans secrets, balayages depuis `ext` et depuis le LAN avec la règle L5 activée le temps de la collecte, `testssl.sh`, `ssh-audit`, `sshd -T`, SNMP, LDAP, RADIUS, IPsec, journalisation, cloisonnement et test de contournement par le `.254`). Les constats ci-dessous sont ceux attendus sur une infrastructure dans l'état de fin de formation ; vérifier chacun dans le dossier réellement distribué avant la correction, certains peuvent différer selon ce qui a été corrigé pendant les TP.
+**Préparation.** Le dossier `tp8/dossier/dossier-audit-3020.zip` est un dossier pédagogique : ses sorties sont représentatives de l'infrastructure de référence du laboratoire, dans un état de fin de formation, avec quelques dérives volontaires (redirection « temporaire » oubliée, anti-verrouillage resté actif, FTP corrigé mais Telnet oublié). Il ne dépend pas de l'état des laboratoires des stagiaires.
 
 **Gestion du temps (1 h).** Annoncer dès le départ : six constats au maximum, une phrase par case. Passer dans les rangs au bout de 15 minutes : un stagiaire qui n'a encore rien noté est perdu dans les fichiers 01 et 02 ; le renvoyer vers 03 et 13.
 
-## Constats attendus
+## Constats du dossier
+
+Les six premiers sont ceux qu'on attend dans le top 6 ; les suivants sont des réponses valables si elles sont prouvées et cotées de façon cohérente.
 
 | Constat | Preuve | Criticité | Référence | Recommandation |
 |---|---|---|---|---|
-| Le dépôt `.git` du site est lisible depuis Internet et contient un identifiant en clair (`deploy:Deploy2019!`) | 03 (`curl …/.git/config`) | Critique | ISO 27002 8.12 ; 8.4 | Supprimer `/var/www/html/.git`, révoquer le compte `deploy`, interdire les fichiers cachés dans nginx (`location ~ /\. { deny all; }`) |
-| Une application de test vulnérable (DVWA), aux identifiants par défaut, est publiée sur Internet | 03 (`/dvwa/login.php` → `200`) | Critique | PCI DSS 2.2.2 ; ISO 27002 8.9 | Retirer l'application du serveur publié |
-| Services en clair et vulnérables sur `web` : FTP, Telnet (CVE-2026-24061, au catalogue KEV), versions sans correctifs | 05 ; rapports TP2 | Critique ou Majeure | PCI DSS 2.2.4, 6.3.3 ; ISO 27002 8.8 | Désinstaller FTP et Telnet ; appliquer les correctifs priorisés au TP2 |
-| TLS 1.0 et 1.1 acceptés sur le service publié ; certificat autosigné | 04, 06 | Majeure | PCI DSS 4.2.1 ; ISO 27002 8.24 | `ssl_protocols TLSv1.2 TLSv1.3;` ; certificat d'une AC reconnue |
-| `web` répond à la communauté SNMP `public` | 08 | Majeure | ISO 27002 8.21 | Désactiver v1/v2c ; SNMPv3 *authPriv* depuis 10.1.10.10 seulement |
-| La liste des comptes de l'annuaire est lisible sans authentification ; LDAP en clair encore accepté | 09 | Majeure | ISO 27002 5.15, 8.24 | ACL `by anonymous auth` ; retirer `ldap:///` ou exiger TLS |
-| Authentification SSH par mot de passe sur les serveurs | 07 (`passwordauthentication yes` ou `kbdinteractiveauthentication yes`) | Majeure | ISO 27002 8.5 | Clés uniquement ; double authentification pour l'administration |
-| Poste d'administration dans le réseau des utilisateurs ; pas de double authentification sur pfSense | 01 (`H_poste_admin` dans `N_LAN`) | Majeure | ISO 27002 8.22 ; PCI DSS 8.4 | Zone d'administration dédiée ; MFA |
-| Avec deux routes ajoutées, `web` joint `srv-int:22` par l'équipement de l'hébergeur en `.254`, sans passer par pfSense | 13 (`nc` réussi, `traceroute` : un saut `10.1.30.254`) | Majeure | ISO 27002 8.22, 5.21 ; PCI DSS 11.4.5 | Exiger de l'hébergeur des réseaux isolés en couche 3 (clause contractuelle) ; filtrage local sur chaque serveur ; surveillance des tables de routage |
-| Selon l'état de la plateforme : anti-verrouillage actif (tout le LAN joint l'interface de pfSense), redirection temporaire du port 80 oubliée, règle L5 restée active | 01, 02, 03 | Majeure | PCI DSS 1.2 | Désactiver l'anti-verrouillage au profit de L1 ; supprimer les règles temporaires |
+| Le dépôt `.git` du site est lisible depuis Internet et livre un identifiant en clair (`deploy:Deploy2019!`) | 03 (`curl …/.git/config`) | Critique | ISO 27002 8.12 | Supprimer `/var/www/html/.git`, révoquer et changer le compte `deploy`, refuser les fichiers cachés dans nginx (`location ~ /\. { deny all; }`) |
+| Une application volontairement vulnérable (DVWA, identifiants par défaut `admin/password`) est publiée sur Internet | 03 (`/dvwa/login.php` → `200`, page d'accueil) | Critique | PCI DSS 2.2.2 ; ISO 27002 8.9 | Retirer DVWA (et Juice Shop) du serveur publié |
+| Une redirection « Test IDS - temporaire » du 12/11 publie toujours le port 80 en clair sur Internet | 01 (Port Forward), 02 (`rdr … port = http`), 03 (`80/tcp open`, code `200`) | Majeure | PCI DSS 1.2 ; ISO 27002 8.20 | Supprimer la redirection ; toute ouverture temporaire a une date de fin et un responsable |
+| Telnet (en clair, `inetutils-telnetd`, CVE-2026-24061 au catalogue KEV) reste ouvert sur `web` ; FTP a été fermé, Telnet oublié | 05 (`23/tcp open telnet`), 08 (inventaire SNMP), rapport TP2 | Majeure (Critique si exposé) | PCI DSS 2.2.4, 6.3.3 ; ISO 27002 8.8 | Désinstaller `inetutils-telnetd` et `openbsd-inetd` |
+| Contournement du pare-feu : avec deux routes, `web` joint `srv-int:22` par l'équipement de l'hébergeur en `.254` ; aucun filtrage local sur les serveurs | 13 (`succeeded`, traceroute `10.1.30.254` puis `10.1.20.10`, `nft` vide) | Majeure | ISO 27002 8.22, 5.21 ; PCI DSS 11.4.5 | Exiger de l'hébergeur l'isolation réelle des réseaux (clause contractuelle, test de segmentation) ; filtrage local nftables sur chaque serveur ; surveiller les tables de routage |
+| TLS 1.0 et 1.1 acceptés, chiffrements 3DES (SWEET32), certificat autosigné, pas de HSTS, sur le service publié | 04, 06 (`offered (deprecated)`, `VULNERABLE`, `NOT ok (self signed)`, note `T`) | Majeure | PCI DSS 4.2.1 ; ISO 27002 8.24 | `ssl_protocols TLSv1.2 TLSv1.3;` et suites ANSSI ; certificat d'une AC reconnue ; HSTS |
+| `web` répond à la communauté SNMP `public` et livre son inventaire logiciel avec les versions | 08 | Majeure | ISO 27002 8.21 | Désactiver v1/v2c sur `web` ; SNMPv3 *authPriv* depuis 10.1.10.10 seulement, comme sur pfSense |
+| La liste des comptes et des administrateurs de l'annuaire est lisible sans authentification ; LDAP en clair accepté sur 389 | 09 | Majeure | ISO 27002 5.15, 8.24 | ACL `to * by anonymous auth by users read` ; retirer `ldap:///` ou `olcSecurity: tls=1` |
+| SSH par mot de passe (et *keyboard-interactive*) sur les serveurs ; 37 échecs d'authentification dans le journal de `srv-int` ; algorithmes faibles (SHA-1, NIST) | 07 | Majeure | ISO 27002 8.5 | Clés uniquement (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`) ; retirer les algorithmes signalés par `ssh-audit` |
+| Règle anti-verrouillage active : tout poste du LAN joint l'interface d'administration de pfSense (la règle L1 restrictive ne sert jamais : 0 paquet) | 01, 02 (compteurs) | Majeure | ISO 27002 8.20 ; PCI DSS 1.2 | Désactiver l'anti-verrouillage (*System → Advanced → Admin Access*) après avoir vérifié L1 |
+| Poste d'administration dans le réseau des utilisateurs ; aucune double authentification pour l'administration | 01 (`H_poste_admin` dans `N_LAN`, « Double authentification : aucune ») | Majeure | ISO 27002 8.22 ; PCI DSS 8.4 | Zone d'administration dédiée ; MFA (RADIUS + OTP) |
+| Client RADIUS `localhost` avec le secret par défaut `testing123` et sans `Message-Authenticator` | 10 | Mineure | ISO 27002 5.17 | Supprimer le client `localhost` ou changer son secret |
+| Journaux de `web` transmis en clair (TCP 514) ; aucune rotation ni durée de rétention définie sur le collecteur ; `web` en UTC, `srv-int` en heure de Paris | 11 | Mineure | ISO 27002 8.15, 8.17 | Syslog sur TLS (6514) ; rotation et rétention (`logrotate`, 6 à 12 mois) ; fuseau homogène ou horodatage avec décalage partout |
+| Aucun filtrage local sur `cloud-gw` | 12 (`nft` vide) | Mineure | ISO 27002 8.20 | Groupe de sécurité ou nftables en refus par défaut (voir l'étape de transposition du TP6) |
 
-**Points positifs attendus** : refus par défaut journalisé sur LAN, SRV et DMZ ; la DMZ ne joint ni la zone serveurs ni le poste d'administration, et ne sort pas librement sur Internet (sans le `.254`) ; zones internes non joignables directement depuis Internet ; tunnel IPsec conforme (IKEv2, AES-256-GCM, groupe 19, PFS, sélecteurs restreints) ; journalisation centralisée et horodatée ; pfSense supervisé en SNMPv3 ; RADIUS avec `Message-Authenticator` et secret long.
+**Points positifs attendus** :
 
-**Sur le `.254`.** La segmentation repose en réalité sur la table de routage de chaque machine, qu'un attaquant administrateur d'une machine peut modifier. La correction appartient à l'hébergeur (responsabilité partagée) : elle se traite par contrat et par exigence de preuve (test de segmentation), pas seulement par configuration côté client. C'est le constat le plus formateur du dossier.
+- refus par défaut journalisé sur LAN, SRV, DMZ et sur l'onglet IPsec (02 : compteurs non nuls) ;
+- règle du scanner L5 désactivée hors campagne ;
+- zones internes non joignables directement depuis Internet (03) ;
+- la DMZ ne joint ni la zone serveurs, ni le poste d'administration, ni Internet hors dépôts (13, sans le `.254`) ;
+- FTP fermé depuis le TP2 : remédiation effective ;
+- tunnel IPsec conforme (IKEv2, AES-256-GCM, groupe 19, PFS, sélecteurs restreints), tentative du cloud vers le site refusée et journalisée (12) ;
+- journalisation centralisée, format RFC 5424, alertes Suricata reçues (11) ;
+- pfSense supervisé en SNMPv3 *authPriv* uniquement (08) ;
+- client RADIUS pfSense protégé (`Message-Authenticator`, secret de 44 caractères).
+
+**Sur le `.254`.** La segmentation repose en réalité sur la table de routage de chaque machine, qu'un attaquant administrateur d'une machine peut modifier, et aucun filtrage local ne prend le relais. La correction appartient à l'hébergeur (responsabilité partagée) : elle se traite par contrat et par exigence de preuve (test de segmentation), et côté client par une défense en profondeur (filtrage local). C'est le constat le plus formateur du dossier.
 
 **Attendus de rédaction.**
 
 - Un constat est un fait prouvé, avec le nom du fichier.
 - Le risque dit ce qui peut arriver, et à qui.
 - La recommandation est précise et vérifiable.
-- La synthèse parle d'impact métier, sans jargon.
+- La synthèse parle d'impact métier, sans jargon : par exemple, « un identifiant interne et une application de démonstration vulnérable sont accessibles depuis Internet : un attaquant peut prendre la main sur le serveur web et, de là, viser le reste du réseau ».
 - Pénaliser les listes sans priorisation, ou les constats sans preuve.
 
 ## Questions

@@ -35,7 +35,7 @@ mousepad rapport-audit.md &
 
 Les rapports Greenbone du TP2 sont dans le dépôt, `tp2/corrige/rapports/` (`scan-authentifie.pdf`).
 
-Parcourez le mandat (`~/TP/mandat-audit-TP8.pdf`) : relevez ce qui est dans le périmètre et ce qui ne l'est pas. Le test de contournement par l'équipement en `.254` (fichier 13) a été fait **avec l'accord écrit du commanditaire**, car cet équipement appartient à l'hébergeur.
+Parcourez le mandat (`~/TP/mandat-audit-TP8.pdf`) : relevez ce qui est dans le périmètre et ce qui ne l'est pas. Le test de contournement par l'équipement en `.254` (fichier 13) a été fait **avec l'accord écrit du commanditaire**, car cet équipement appartient à l'hébergeur. Le dossier est un dossier pédagogique : ses sorties sont représentatives de l'infrastructure de référence du laboratoire, et peuvent différer de votre propre laboratoire.
 
 ## Étape 2 — Analyser les preuves
 
@@ -53,8 +53,8 @@ Ouvrez les fichiers un par un (`less` ou l'éditeur). Pour chaque ligne de la gr
 | 6 | Supervision SNMP | `08-snmp.txt`, `01-…` | Un équipement répond-il à la communauté `public` ? pfSense est-il en SNMPv3 ? |
 | 7 | Annuaire et authentification | `09-annuaire-ldap.txt`, `10-radius.txt` | La liste des comptes est-elle lisible sans authentification ? LDAP en clair (`ldap:///`) encore accepté ? RADIUS protégé par `Message-Authenticator` et un secret long ? |
 | 8 | VPN | `12-ipsec.txt`, `01-…` | IKEv2, AES-GCM, SHA-2, groupe DH 19, PFS, sélecteurs restreints ? |
-| 9 | Journalisation | `11-journalisation.txt`, `01-…` | Les journaux de pfSense et de `web` arrivent-ils sur le collecteur ? Les horloges sont-elles synchronisées ? |
-| 10 | Cloisonnement | `13-cloisonnement.txt` | La DMZ peut-elle joindre la zone serveurs ou le poste d'administration ? Peut-elle sortir sur Internet ? Que se passe-t-il quand on passe par l'équipement en `.254` ? |
+| 9 | Journalisation | `11-journalisation.txt`, `01-…` | Les journaux de pfSense et de `web` arrivent-ils sur le collecteur ? Comment sont-ils transportés ? Sont-ils conservés et pour combien de temps ? Les horloges sont-elles synchronisées ? |
+| 10 | Cloisonnement | `13-cloisonnement.txt` | La DMZ peut-elle joindre la zone serveurs ou le poste d'administration ? Peut-elle sortir sur Internet ? Que se passe-t-il quand on passe par l'équipement en `.254` ? Un filtrage local sur les serveurs prendrait-il le relais ? |
 
 > **Méthode.** Commencez par les fichiers 03 et 13 : ce sont ceux qui montrent ce qu'un attaquant peut réellement faire. Puis 05, 07, 08 et 09 pour les services. Les fichiers 01 et 02 servent surtout à expliquer **pourquoi** un flux passe ou non.
 
