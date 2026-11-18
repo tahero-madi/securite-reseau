@@ -57,7 +57,7 @@ En cas de problème : [En cas de blocage](en-cas-de-blocage.md).
 | --- | --- |
 | `tp1/` … `tp8/` | L'énoncé du TP (`README.md`) |
 | `tpN/corrige/` | Le corrigé du TP |
-| `tpN/modeles/` | Les modèles des livrables (cartographie, matrice des risques, rapport de vulnérabilités, matrice de flux) |
+| `tpN/modeles/` | Les modèles des livrables (cartographie, matrice des risques, rapport de vulnérabilités, matrice de flux, fiche d'incident, rapport d'audit) |
 | `manuel/` | Le manuel du stagiaire (PDF) |
 | `img/topologie.png` | La topologie du laboratoire |
 | `fichiers/` | Les fichiers remis dans `~/TP` : captures `tp1-arp-demo.pcap`, `tp1-ftp-clear.pcap` et `tp7-incident.pcap`, mandat `mandat-audit-TP8.pdf`, et le script qui génère les captures |

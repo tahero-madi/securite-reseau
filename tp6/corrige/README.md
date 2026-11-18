@@ -2,17 +2,120 @@
 
 > Cherchez d'abord par vous-même : ce corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP.
 
-**Préparation.** Rien à installer : `cloud-gw` porte strongSwan (`swanctl`, service `strongswan`), nftables, ulogd2, et une interface virtuelle `vpc0` (10.101.1.1/24) qui joue le VPC. `fw` (10.10.0.20) et `cloud-gw` (10.10.0.30) sont sur le même segment « Internet » : pas de NAT entre eux, donc pas de NAT-T. Côté pfSense, il faut trois règles : WAN (UDP 500/4500 et ESP depuis 10.10.0.30), SRV (srv-int → 10.101.1.1, sinon le trafic est refusé avant même d'entrer dans le tunnel) et IPsec. La PSK doit être identique des deux côtés (source d'erreur n°1). À vérifier une fois sur la plateforme : l'ESP (protocole 50) passe bien sur le WAN (voir `hexceos/README.md`).
+**Préparation.** Rien à installer : `cloud-gw` porte strongSwan (`swanctl`, service `strongswan`), nftables (fichier `/etc/nftables.conf` vide), ulogd2 et une interface virtuelle `vpc0` (10.101.1.1/24) qui joue le VPC ; nginx y publie le service HTTPS sur 10.101.1.1. pfSense (10.10.0.20) et `cloud-gw` (10.10.0.30) sont sur le même segment « Internet », sans traduction d'adresses entre eux : pas de NAT-T, l'ESP circule en protocole IP 50. À vérifier une fois sur la plateforme : l'ESP passe bien sur le WAN (voir `hexceos/README.md`). Si Suricata est resté en mode blocage après le TP5, une alerte sur `cloud-gw` peut le bloquer : vérifier *Services → Suricata → Blocks*.
 
-**Parties A/B.** Erreurs classiques : propositions crypto non symétriques entre pfSense et strongSwan (la P1/P2 doit correspondre : `aes256gcm16-sha256-ecp256` ↔ AES-256-GCM / SHA-256 / DH19) ; sélecteurs de trafic inversés (local/remote) ; ports IKE non ouverts sur WAN ; PSK différente. `swanctl --list-sas` et *Status → IPsec* doivent montrer ESTABLISHED. Si NAT entre les deux, NAT-T (4500) prend le relais.
+## Étape 1 — Clé partagée
 
-**Partie C.** La capture faite sur cloud-gw ne doit montrer que ISAKMP (500/4500) + ESP (proto 50) entre 10.10.0.20 et 10.10.0.30. C'est la preuve visuelle du chiffrement. Bien faire comparer avec un flux direct non tunnelé (lisible). Rappeler que les sélecteurs limitent la portée et que le filtrage reste nécessaire.
+44 caractères Base64 (264 bits d'aléa). Source d'erreur n° 1 de tout le TP : une clé différente des deux côtés (espace en trop au copier-coller, clé retapée à la main).
 
-**Partie D.** Le parallèle nftables ↔ Security Groups est le cœur pédagogique du module 6 : refus par défaut, autorisations explicites par rôle/source, à états. Les journaux de refus préfigurent les Flow Logs. La règle d'administration accepte SSH depuis 10.10.0.20 : c'est la Kali, dont pfSense traduit l'adresse ; en production, on préférerait une adresse d'administration dédiée ou un accès sans port ouvert (Session Manager, Bastion).
+## Étapes 2 et 3 — Phases 1 et 2
 
-**Partie E.** Vérifier que les apprenants ne confondent pas SG (à états, par instance) et NACL (sans état, par sous-réseau), et qu'ils notent le piège Azure `AllowVnetInBound`. Pour SSH, valoriser les accès sans exposition (SSM / Bastion).
+| | pfSense | strongSwan |
+|---|---|---|
+| Phase 1 | IKEv2, AES256-GCM 128 bits, SHA256, DH 19, 86400 s | `proposals = aes256gcm16-sha256-ecp256` |
+| Identités | *My IP address* / *Peer IP address* | `id = 10.10.0.30` / `id = 10.10.0.20` |
+| Phase 2 | ESP, AES256-GCM 128 bits, PFS 19, 3600 s | `esp_proposals = aes256gcm16-ecp256` |
+| Sélecteurs | local `10.1.20.0/24`, distant `10.101.1.0/24` | `local_ts = 10.101.1.0/24`, `remote_ts = 10.1.20.0/24` |
 
-**Questions.** 1 : IKEv2, AES-256-GCM, SHA-256, DH groupe 19, PFS activée, PSK forte (ou certificats), durées de vie raisonnables. 2 : ESP encapsule et chiffre le paquet IP d'origine ; sur le lien intermédiaire on ne voit que l'enveloppe ESP, pas la charge applicative. 3 : une référence entre groupes suit automatiquement l'élasticité (ajout/retrait d'instances) sans réécrire les règles, et exprime l'intention (rôle→rôle) plutôt qu'une topologie d'adresses figée.
+Les durées de vie n'ont pas à être identiques : chaque côté renégocie à l'échéance la plus proche. `pfctl -sr | grep 10.10.0.30` montre les règles automatiques (UDP 500, 4500 et ESP) : aucune règle n'est à créer sur le WAN. Elles peuvent être désactivées dans *System → Advanced → Firewall & NAT* (*Disable all auto-added VPN rules*), auquel cas il faut les écrire à la main.
+
+## Étapes 4 et 5 — Filtrage côté site
+
+| N° | Interface | Action | Source | Destination | Port | Rôle |
+|---|---|---|---|---|---|---|
+| S6 | SRV | Pass | `H_srv_int` | `H_vpc_app` (10.101.1.1) | `P_cloud` (443, 22) | Qui peut **utiliser** le tunnel, au-dessus de S5 |
+| I1 | IPsec | Block + log | 10.101.1.0/24 | any | any | Le cloud ne peut pas **ouvrir** de connexion vers le site |
+
+Points à faire verbaliser :
+
+- sans S6, la requête de `srv-int` est refusée par S5 avant même d'être chiffrée : le tunnel est établi mais aucun trafic ne passe ; le refus apparaît dans les journaux sur l'interface SRV ;
+- pfSense filtre à l'**entrée** de chaque interface. Les réponses du cloud arrivent par `enc0` (onglet IPsec) mais appartiennent à une connexion acceptée par S6 : la table d'états les laisse passer, l'onglet IPsec n'intervient pas. Une règle `Pass 10.1.20.10 → 10.101.1.1` sur l'onglet IPsec n'aurait aucun effet : ce trafic n'entre jamais dans pfSense par `enc0` ;
+- sans I1, le résultat est le même (refus implicite), mais rien n'est journalisé.
+
+## Étapes 6 et 7 — strongSwan
+
+Sortie attendue de `swanctl --list-sas` (extrait) :
+
+```text
+site: #1, ESTABLISHED, IKEv2, …
+  local  '10.10.0.30' @ 10.10.0.30[500]
+  remote '10.10.0.20' @ 10.10.0.20[500]
+  AES_GCM_16-256/PRF_HMAC_SHA2_256/ECP_256
+  net: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256/ECP_256
+    local  10.101.1.0/24
+    remote 10.1.20.0/24
+```
+
+Erreurs classiques et message correspondant dans *Status → System Logs → IPsec* :
+
+| Symptôme | Cause |
+|---|---|
+| `NO_PROPOSAL_CHOSEN` | Algorithmes différents (souvent : AES256-GCM laissé en *Auto* ou autres algorithmes cochés en phase 2 ; groupe PFS oublié d'un côté) |
+| `AUTHENTICATION_FAILED` | Clé différente, ou identités (*My/Peer identifier*) qui ne correspondent pas aux `id` |
+| `TS_UNACCEPTABLE` | Sélecteurs non inversés, ou masque différent |
+| `connecting to 'unix:///var/run/charon.vici' failed` | Service `strongswan` arrêté |
+| Négociation qui n'aboutit jamais | Suricata a bloqué `cloud-gw`, ou nftables chargé sans la règle IKE |
+
+## Étape 8 — Tests
+
+| Test | Attendu | Règle |
+|---|---|---|
+| `srv-int` → `https://10.101.1.1` | Page « Application cloud » | S6, puis tunnel |
+| `srv-int` → SSH 10.101.1.1 | `cloud-gw` | S6, puis tunnel |
+| Kali → `https://10.101.1.1` | Délai dépassé | L10 (10.101.1.1 est dans `N_PRIVE`) ; et hors sélecteurs |
+| `cloud-gw` (source 10.101.1.1) → `srv-int:22` | Délai dépassé, refus journalisé sur `enc0` | I1 |
+
+`-s 10.101.1.1` garantit que la source correspond aux sélecteurs, qui portent sur les adresses **source et destination**. strongSwan installe d'ailleurs une route vers 10.1.20.0/24 avec 10.101.1.1 comme adresse source préférée (`ip route show table 220` sur `cloud-gw`).
+
+## Étape 9 — Preuve du chiffrement
+
+Avec le filtre `esp`, seuls 10.10.0.20 ↔ 10.10.0.30 et le SPI apparaissent ; les adresses internes, les ports et la charge HTTPS sont invisibles. Le filtre `tcp.port == 22` montre au contraire la session SSH de la Kali en clair au niveau IP et TCP (adresses, ports, tailles), avec un contenu chiffré par SSH. Si aucun paquet ESP n'apparaît : le `curl` a été lancé hors de la capture, ou la capture a été prise sur la mauvaise carte.
+
+## Étapes 10 et 11 — Groupes de sécurité et journaux de flux
+
+Le parallèle nftables ↔ groupes de sécurité est le cœur du module 6 : refus par défaut, autorisations explicites par rôle et par source, filtrage à états. Les erreurs typiques :
+
+- règle ESP oubliée : IKE s'établit, plus aucun trafic dans le tunnel ;
+- règle IKE oubliée : le tunnel tient jusqu'à la prochaine renégociation, puis tombe ;
+- règle d'administration oubliée : seule la session en cours survit (`established`) ; la suivante exige la console du portail.
+
+La règle d'administration accepte SSH depuis 10.10.0.20 : c'est la Kali, traduite par pfSense, mais aussi **toute** machine du site qui sort par pfSense. En production : adresse d'administration dédiée, ou accès sans port ouvert (AWS Systems Manager Session Manager, Azure Bastion).
+
+Amélioration possible : n'accepter les flux du site que s'ils sont arrivés **par le tunnel**, et non en clair avec une adresse source usurpée : `meta ipsec exists` dans les règles 443 et 22.
+
+Journal attendu :
+
+```text
+… cloudsg-drop: IN=ens18 OUT= MAC=… SRC=10.10.0.40 DST=10.10.0.30 … PROTO=TCP SPT=… DPT=22 … SYN …
+… cloudsg-ok: IN=ens18 OUT= MAC=… SRC=10.1.20.10 DST=10.101.1.1 … PROTO=TCP SPT=… DPT=443 … SYN …
+```
+
+La ligne `cloudsg-ok` a `IN=ens18` : le paquet déchiffré est attribué à la carte par laquelle est arrivé l'ESP.
+
+## Étape 12 — Transposition
+
+| Élément du TP | Équivalent AWS | Équivalent Azure |
+|---|---|---|
+| Tunnel IPsec pfSense ↔ `cloud-gw` | Site-to-Site VPN : *Customer Gateway* + *Virtual Private Gateway* ou *Transit Gateway* | *VPN Gateway* + *Local Network Gateway* + connexion IPsec |
+| VPC 10.101.1.0/24 | VPC et sous-réseau | VNet et sous-réseau |
+| Règle « HTTPS depuis le réseau SRV » | *Security Group* entrant 443, source = plage du site | NSG entrant 443, source = plage du site |
+| Règle « SSH depuis `srv-int` seulement » | SG entrant 22 depuis une seule adresse (mieux : Session Manager, aucun port ouvert) | NSG entrant 22 depuis une seule adresse (mieux : Azure Bastion) |
+| `policy drop` | Comportement par défaut d'un SG : tout refusé en entrée | Règle par défaut `DenyAllInBound`, **mais** `AllowVnetInBound` la précède : tout le VNet (et les réseaux reliés par VPN) est autorisé si on ne le restreint pas |
+| Journaux `cloudsg-ok` / `cloudsg-drop` | VPC Flow Logs | VNet Flow Logs (les NSG Flow Logs sont en fin de vie) |
+| Console du portail | EC2 Serial Console | Serial Console des VM |
+
+Vérifier que les apprenants ne confondent pas *Security Group* (à états, attaché à l'instance) et *Network ACL* (sans état, attachée au sous-réseau, il faut alors autoriser explicitement les ports de retour).
+
+## Défi
+
+`auth = pubkey` côté strongSwan, *Mutual Certificate* côté pfSense, certificats émis par une AC commune, identités = nom du certificat. Les certificats : pas de secret partagé à transmettre et à stocker des deux côtés ; un secret par passerelle, révocable individuellement ; pas d'attaque hors ligne sur une PSK faible ; passage à l'échelle (N sites = N certificats, au lieu d'une clé par paire de sites).
+
+## Questions
+
+1. IKEv2 ; AES-256-GCM ; SHA-256 comme PRF ; groupe DH 19 (P-256) en phase 1 et en PFS ; durées de vie limitées (24 h, 1 h) ; authentification forte (PSK longue et aléatoire, certificats en production) ; sélecteurs restreints.
+2. ESP chiffre le paquet IP d'origine en entier (adresses internes, ports, données) et l'encapsule dans un nouveau paquet entre les passerelles : sur le segment intermédiaire, on ne voit que l'enveloppe.
+3. Le filtrage est à états : les réponses appartiennent à une connexion ouverte par `srv-int` et acceptée par S6. L'onglet IPsec ne juge que les connexions **ouvertes** depuis le cloud.
+4. Une référence à un groupe suit automatiquement l'ajout et le retrait d'instances, sans réécrire les règles, et exprime une intention (« les serveurs web peuvent joindre la base ») plutôt qu'une liste d'adresses figée qui se périme.
 
 ---
 
