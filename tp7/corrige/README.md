@@ -42,7 +42,10 @@ Règle ajoutée :
 - `snmpwalk -v3 … system` renvoie `sysDescr`, `sysUpTime`, `sysContact`, `sysName`, `sysLocation` ; la requête v2c `public` aboutit à `Timeout`. Un équipement qui « supporte SNMP » ne supporte pas forcément SNMPv3 : le service intégré de pfSense (bsnmpd) ne fait que v1/v2c.
 - *Host* `pfSense` : icône `SNMP` verte ; avec NET-SNMP, les éléments du modèle propres au filtre de pfSense (MIB `BEGEMOT-PF-MIB`) restent *Not supported*, les interfaces fonctionnent.
 - *Host* `srv-int` gris ou rouge : nom différent de `srv-int`, ou flux 10050 (L4) / 10051 (S4) fermés. Dans le journal de l'agent (`/var/log/zabbix/zabbix_agentd.log` sur `srv-int`) : `cannot connect to [[10.1.10.10]:10051]` (S4 manquante) ou `host [srv-int] not found` (nom différent).
-- Déclencheur : `count(/srv-int/log[/var/log/auth.log,"Failed password"],2m)>=5` passe en *Problem* environ une minute après la boucle `sshpass`. S'il reste à *OK* : élément en type passif au lieu d'actif, ou *Type of information* laissé sur *Numeric* (l'élément devient *Not supported*).
+- Déclencheur : `count(/srv-int/log[/var/log/auth.log,"Failed (password|keyboard-interactive)"],2m)>=5` passe en *Problem* environ une minute après la boucle `sshpass`. S'il reste à *OK* :
+  - filtre limité à `Failed password` : sur la plateforme, `sshd` accepte la méthode *keyboard-interactive*, que le client SSH préfère ; les échecs s'écrivent alors `Failed keyboard-interactive/pam for …` et ne correspondent pas (vérifier avec `sudo grep sshd /var/log/auth.log | tail`) ;
+  - élément en type passif au lieu d'actif, ou *Type of information* laissé sur *Numeric* (l'élément devient *Not supported*) ;
+  - flux 10051 (S4) fermé ou nom d'hôte différent de `srv-int` : l'agent actif ne reçoit pas la liste de ses éléments.
 
 Le déclencheur relie supervision et sécurité : c'est une règle de détection, au même titre qu'une signature Suricata.
 

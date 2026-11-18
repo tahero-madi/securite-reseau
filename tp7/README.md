@@ -274,7 +274,7 @@ Après deux à trois minutes, l'icône `ZBX` de `srv-int` est verte, et *Latest 
 |---|---|
 | *Name* | `Échecs de mot de passe SSH` |
 | *Type* | `Zabbix agent (active)` |
-| *Key* | `log[/var/log/auth.log,"Failed password"]` |
+| *Key* | `log[/var/log/auth.log,"Failed (password|keyboard-interactive)"]` |
 | *Type of information* | `Log` |
 | *Update interval* | `30s` |
 
@@ -284,14 +284,14 @@ Après deux à trois minutes, l'icône `ZBX` de `srv-int` est verte, et *Latest 
 |---|---|
 | *Name* | `Force brute SSH possible sur srv-int` |
 | *Severity* | `High` |
-| *Expression* | `count(/srv-int/log[/var/log/auth.log,"Failed password"],2m)>=5` |
+| *Expression* | `count(/srv-int/log[/var/log/auth.log,"Failed (password|keyboard-interactive)"],2m)>=5` |
 
 *Add*.
 
 **Ligne par ligne.**
 
 - *Type* `Zabbix agent (active)` : la lecture d'un journal ne se fait qu'en mode actif ; l'agent garde sa position dans le fichier et n'envoie que les nouvelles lignes.
-- `log[/var/log/auth.log,"Failed password"]` : lit `/var/log/auth.log` et ne retient que les lignes qui contiennent `Failed password`. L'agent peut lire ce fichier parce que son compte `zabbix` est membre du groupe `adm`.
+- `log[/var/log/auth.log,"Failed (password|keyboard-interactive)"]` : lit `/var/log/auth.log` et ne retient que les lignes qui correspondent à l'expression régulière `Failed (password|keyboard-interactive)`. Selon la méthode que le client SSH a utilisée, un échec s'écrit `Failed password for …` ou `Failed keyboard-interactive/pam for …` : l'expression couvre les deux. Un filtre sur `Failed password` seul passerait à côté de la moitié des attaques, sans aucun message d'erreur. L'agent peut lire ce fichier parce que son compte `zabbix` est membre du groupe `adm`.
 - *Type of information* `Log` : chaque valeur est une ligne de texte horodatée.
 - `count(/srv-int/log[…],2m)>=5` : le déclencheur passe en *Problem* si l'élément a reçu au moins 5 lignes dans les 2 dernières minutes. Il revient de lui-même à *OK* quand les échecs cessent.
 
@@ -310,7 +310,7 @@ for i in 1 2 3 4 5 6; do sshpass -p 'mauvais' ssh -o PubkeyAuthentication=no -o 
 - `for i in 1 2 3 4 5 6; do … ; done` : répète six fois la commande.
 - `sshpass -p 'mauvais'` : fournit automatiquement le mot de passe `mauvais` quand `ssh` le demande.
 - `-o PubkeyAuthentication=no` : force l'authentification par mot de passe.
-- `-o NumberOfPasswordPrompts=1` : un seul essai par connexion, donc une ligne `Failed password` par tour.
+- `-o NumberOfPasswordPrompts=1` : un seul essai par connexion, donc une ligne d'échec par tour (`Failed password` ou `Failed keyboard-interactive/pam`, selon la méthode retenue).
 - `formation@10.1.20.10 true` : le compte visé, et une commande sans effet qui ne serait exécutée qu'en cas de succès.
 
 Six messages `Permission denied` s'affichent. Dans Zabbix, *Monitoring → Problems* : au bout d'une minute environ, `Force brute SSH possible sur srv-int` apparaît. Capturez l'écran.
