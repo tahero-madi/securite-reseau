@@ -4,7 +4,7 @@
 
 **Prérequis** : modules 1 à 8. **Livrable** : `rapport-audit.md` complété, dans `~/livrables`.
 
-**Déroulé** : étape 1 (dossier et mandat) 5 min · étape 2 (analyse des preuves) 25 min · étape 3 (cotation) 10 min · étape 4 (rédaction) 15 min · étape 5 (restitution) 5 min.
+**Déroulé** : étape 1 (dossier et mandat) 5 min · étape 2 (analyse des preuves) 25 min · étape 3 (cotation) 10 min · étape 4 (rédaction) 20 min.
 
 ## Mise en situation
 
@@ -79,7 +79,7 @@ Reliez chacun à **une** référence, choisie dans cette liste :
 
 ## Étape 4 — Rédiger le rapport
 
-**Pourquoi.** Le rapport a deux lecteurs : la direction, qui décide et finance, et l'équipe technique, qui corrige. La synthèse s'écrit pour la première, sans jargon ; le tableau des constats pour la seconde, avec les preuves.
+**Pourquoi.** Le rapport a deux lecteurs : la direction, qui décide et finance, et l'équipe technique, qui corrige. La synthèse s'écrit pour la première, sans jargon ; le tableau des constats pour la seconde, avec les preuves. Vous avez 20 minutes.
 
 Complétez `rapport-audit.md` :
 
@@ -89,12 +89,6 @@ Complétez `rapport-audit.md` :
 4. **Points positifs** : ce qui est conforme (une direction doit aussi savoir ce qui fonctionne).
 
 Une bonne recommandation est **précise et vérifiable** : « désactiver SNMP v2c sur `web` et n'autoriser SNMPv3 *authPriv* que depuis 10.1.10.10 », et non « durcir SNMP ».
-
-## Étape 5 — Restituer
-
-**Pourquoi.** Un audit se conclut par une restitution orale au commanditaire : c'est là que les priorités se décident.
-
-En une minute : votre constat le plus grave, sa preuve, et votre première recommandation.
 
 > **Défi ★.** Vérifiez en direct, sur votre propre laboratoire, un constat du dossier. Par exemple, depuis `ext` : `curl -sk https://10.10.0.20/.git/config`. Votre laboratoire donne-t-il le même résultat que celui du dossier ? Qu'est-ce qui explique une différence éventuelle (TP réalisés ou non, corrections appliquées) ? C'est la limite de tout audit : il photographie un état à une date.
 
