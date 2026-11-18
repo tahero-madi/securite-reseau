@@ -298,7 +298,7 @@ Sur pfSense (`https://10.1.10.1`) :
    - *Shared Secret* : le secret de l'étape 7 ;
    - *Services offered* : **Authentication** ; *Authentication port* : `1812` ;
    - *Disable Message Authenticator* : **non coché** ;
-   - *RADIUS NAS IP Attribute* : **SRV** ;
+   - *RADIUS NAS IP Attribute* : **OPT1** (c'est l'interface SRV, 10.1.20.1 ; cette liste affiche les noms internes des interfaces, OPT1 pour SRV et OPT2 pour la DMZ) ;
    - **Save**.
 
 **Pourquoi PAP ?** FreeRADIUS vérifie le mot de passe par une connexion LDAP au nom de l'utilisateur : il a besoin du mot de passe lui-même, que PAP transmet masqué avec le secret partagé. Les méthodes à défi (CHAP, MS-CHAPv2) ne le transmettent pas, et ne fonctionneraient pas ici. C'est acceptable sur un réseau d'administration maîtrisé, avec un secret fort et `Message-Authenticator` ; hors de ce cadre, on utilise RadSec ou une méthode EAP.
@@ -321,7 +321,7 @@ Sur pfSense (`https://10.1.10.1`) :
 
 **Pourquoi.** C'est la chaîne complète : un administrateur se connecte à pfSense avec son compte de l'annuaire, pfSense interroge FreeRADIUS, qui interroge l'annuaire, puis applique la règle de groupe. On capture l'échange pour voir ce qui circule réellement sur le réseau.
 
-1. *Diagnostics → Packet Capture* : *Interface* **SRV**, *Protocol* **UDP**, *Port* `1812`, **Start**.
+1. *Diagnostics → Packet Capture* : *Interface* **SRV** (ou **OPT1** si la liste affiche les noms internes), *Protocol* **UDP**, *Port* `1812`, **Start**.
 2. *System → User Manager → Settings* : *Authentication Server* `RADIUS srv-int`, **Save**. Le compte local `admin` reste votre compte de secours : **gardez cette session ouverte** jusqu'à la fin du test.
 3. Ouvrez une **fenêtre de navigation privée** de Firefox, allez sur `https://10.1.10.1` et connectez-vous avec `alice` / `Alice-3020`, puis essayez avec `bob` / `Bob-3020`.
 4. Revenez dans la première fenêtre : *Packet Capture* → **Stop**, puis **Download Capture**, et enregistrez le fichier dans `~/livrables/tp4-radius.pcap`.
