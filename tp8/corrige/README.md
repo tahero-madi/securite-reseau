@@ -84,7 +84,7 @@ Remise en ordre attendue : L5 désactivée, routes `.254` retirées, adresse 10.
 | TP4 RADIUS/LDAP | Chaîne fonctionnelle, durcissement, LDAPS | /10 |
 | TP5 Suricata | Règles maison, blocage IPS, réglage justifié | /10 |
 | TP6 IPsec + SG | Tunnel conforme, chiffrement prouvé, transposition | /10 |
-| TP7 supervision + incident | Centralisation, trigger, fiche d'incident | /10 |
+| TP7 supervision et journalisation | Centralisation horodatée, SNMPv3, déclencheur testé | /10 |
 | TP8 rapport d'audit | Constats prouvés et cotés, plan d'action, synthèse | /20 |
 | QCM final | 30 questions | /30 |
 

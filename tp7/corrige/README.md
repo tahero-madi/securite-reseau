@@ -39,6 +39,7 @@ Règle ajoutée :
 |---|---|---|---|---|---|---|
 | L11 | LAN | Pass | `H_poste_admin` | LAN address | UDP 161 | Interrogation SNMPv3 de pfSense, au-dessus de L10 |
 
+- Piège fréquent : le service SNMP intégré de pfSense (`bsnmpd`) resté actif. Il tient le port 161 (`sockstat -4 -l | grep :161` affiche `bsnmpd`), l'agent NET-SNMP ne démarre pas, et `snmpwalk -v3` aboutit à `Timeout`. Décocher *Services → SNMP → Enable*, puis démarrer `netsnmp` dans *Status → Services* (le service `net snmp trap listening daemon` reste arrêté). `Unknown user name` : l'utilisateur a été créé dans *User Auth* de la partie snmptrapd au lieu de *Users* de la partie snmpd, ou l'agent n'a pas été redémarré (`/var/etc/netsnmpd-users.conf` doit contenir `createUser "zbx-ro" …`).
 - `snmpwalk -v3 … system` renvoie `sysDescr`, `sysUpTime`, `sysContact`, `sysName`, `sysLocation` ; la requête v2c `public` aboutit à `Timeout`. Un équipement qui « supporte SNMP » ne supporte pas forcément SNMPv3 : le service intégré de pfSense (bsnmpd) ne fait que v1/v2c.
 - *Host* `pfSense` : icône `SNMP` verte ; avec NET-SNMP, les éléments du modèle propres au filtre de pfSense (MIB `BEGEMOT-PF-MIB`) restent *Not supported*, les interfaces fonctionnent.
 - *Host* `srv-int` gris ou rouge : nom différent de `srv-int`, ou flux 10050 (L4) / 10051 (S4) fermés. Dans le journal de l'agent (`/var/log/zabbix/zabbix_agentd.log` sur `srv-int`) : `cannot connect to [[10.1.10.10]:10051]` (S4 manquante) ou `host [srv-int] not found` (nom différent).
@@ -50,7 +51,7 @@ Règle ajoutée :
 
 Le déclencheur relie supervision et sécurité : c'est une règle de détection, au même titre qu'une signature Suricata.
 
-## Étapes 12 à 15 — Analyse de la capture
+## Pour aller plus loin — Analyse de la capture `tp7-incident.pcap` (hors temps du TP)
 
 Guider la **méthode** plus que la réponse : hiérarchie des protocoles → conversations → filtres par étape → suivi de flux → export d'objets → qualification ATT&CK. Faire verbaliser la chronologie. Solution (UTC, 12/11/2026) :
 
@@ -69,7 +70,7 @@ IOC : 198.51.100.66 (source de l'attaque), 198.51.100.77:8080 (C2 et exfiltratio
 
 Causes racines à faire émerger : publication 1:1 (tous les ports) au lieu d'un port forward 443 ; dépôt `.git` dans la racine web ; identifiants par défaut ; injection de commande dans l'application ; **absence de filtrage sortant** depuis la DMZ (le C2, le DNS direct et l'exfiltration auraient échoué avec la matrice du TP3 : D1 n'autorise le DNS que vers pfSense, D4 refuse le reste).
 
-## Étape 16 — Fiche d'incident
+## Pour aller plus loin — Fiche d'incident
 
 Une bonne fiche :
 
@@ -87,8 +88,8 @@ Sur `srv-int` : `sudo mv /etc/rsyslog.d/20-tls.conf.exemple /etc/rsyslog.d/20-tl
 
 1. Disponibilité (les journaux survivent à la compromission ou à la panne de la source), intégrité (un attaquant local ne peut pas les effacer), corrélation (vue unique et horodatée), conformité (rétention, preuve).
 2. v1/v2c : une communauté envoyée en clair qui fait office de mot de passe, souvent `public`, et aucun chiffrement des réponses (qui révèlent la configuration). v3 *authPriv* : utilisateur authentifié (HMAC) et échanges chiffrés.
-3. `tcp.flags.syn==1 && tcp.flags.ack==0` : beaucoup de paquets, depuis une même source, vers des ports variés, la plupart sans réponse.
-4. La régularité : des connexions à intervalle fixe (~30 s) vers la même destination externe non légitime, initiées par un serveur qui n'a pas à initier de connexions, avec des requêtes et réponses courtes et identiques (`id=web-dmz`, `sleep`). Un trafic humain est irrégulier.
+3. La lecture d'un fichier journal se fait sur la machine : l'agent garde sa position dans le fichier et envoie lui-même les nouvelles lignes au serveur (TCP 10051). En mode passif, le serveur interroge l'agent à intervalle fixe et ne peut pas suivre un fichier.
+4. Sur la plateforme, `sshd` vérifie les mots de passe par PAM ; avec un seul essai par connexion, le client coupe avant que la ligne `Failed …` soit écrite. Seule `pam_unix(sshd:auth): authentication failure` apparaît. On le découvre en **testant** l'alerte (étape 11) puis en lisant le journal réel (`journalctl -u ssh`) : une règle de détection doit toujours être validée par une attaque simulée.
 
 ---
 

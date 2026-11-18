@@ -24,6 +24,9 @@ Commencez par vérifier, dans le portail, que les 6 machines sont « En marche �
 | La connexion s'ouvre dans le tunnel, mais les transferts bloquent (TP6) | MTU réduite par l'encapsulation | Ajuster le MSS TCP (*MSS clamping*) sur le tunnel |
 | Aucun journal de `web` reçu sur srv-int (TP7) | Règle D5 absente ou sous D4, ou envoi en UDP (`@`) au lieu de TCP (`@@`) | D5 : `H_web` → `H_srv_int` TCP 514, au-dessus de D4 ; `@@10.1.20.10:514` sur `web` ; `sudo ss -tulnp \| grep 514` sur srv-int |
 | Zabbix ne remonte rien (TP7) | Flux 10050, 10051 ou 161 fermés, nom d'hôte différent | Ouvrir Kali → srv-int TCP 10050, srv-int → Kali TCP 10051, Kali → pfSense UDP 161 ; le *Host* doit s'appeler exactement `srv-int` |
+| `snmpwalk -v3` vers pfSense : `Timeout` (TP7) | Le service SNMP intégré (`bsnmpd`) tient le port 161, l'agent NET-SNMP ne tourne pas | *Services → SNMP* : *Enable* décoché, *Save* ; *Status → Services* : démarrer `netsnmp` ; `sockstat -4 -l \| grep :161` doit afficher `snmpd` |
+| `snmpwalk -v3` : `Unknown user name` (TP7) | Utilisateur créé côté snmptrapd (*User Auth*) au lieu de snmpd (*Users*) | Le recréer dans *Services → SNMP (NET-SNMP)* → *Users*, puis redémarrer `netsnmp` |
+| L'alerte Zabbix « force brute SSH » ne se déclenche pas (TP7) | Filtre sur `Failed password`, que `sshd` n'écrit pas ici | Clé `log[/var/log/auth.log,"sshd:auth.*authentication failure"]` ; vérifier les lignes dans *Monitoring → Latest data* |
 | Laboratoire entièrement cassé | Configuration corrompue | Restaurer l'instantané de la machine concernée depuis le portail ; en dernier recours, demander au formateur de recréer l'environnement |
 
 Toujours bloqué ? Notez la commande, le message d'erreur exact et ce que vous attendiez, puis appelez le formateur.

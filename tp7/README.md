@@ -1,10 +1,10 @@
-# TP7 — Supervision, journalisation et analyse d'incident
+# TP7 — Supervision et journalisation
 
-**Jour 4, 09:40 · 2 h 20, pause incluse.** Objectifs : centraliser les journaux de pfSense et des serveurs sur un collecteur rsyslog ; superviser pfSense en SNMPv3 et `srv-int` par agent avec Zabbix ; créer une alerte utile à la sécurité ; analyser méthodiquement une capture d'intrusion avec Wireshark ; rédiger une fiche d'incident.
+**Jour 4, 09:40 · 1 h 15.** Objectifs : centraliser les journaux de pfSense et des serveurs sur un collecteur rsyslog ; superviser pfSense en SNMPv3 et `srv-int` par agent avec Zabbix ; créer une alerte utile à la sécurité et vérifier qu'elle se déclenche.
 
-**Prérequis** : module 7, TP3 terminé (règles L4 et S4 : flux de l'agent Zabbix), TP5 conseillé (alertes Suricata envoyées au journal système). **Livrable** : preuve de centralisation des journaux, alerte Zabbix déclenchée, `fiche-incident.md` complétée, dans `~/livrables`.
+**Prérequis** : module 7, TP3 terminé (règles L4 et S4 : flux de l'agent Zabbix), TP5 conseillé (alertes Suricata envoyées au journal système). **Livrable** : preuve de centralisation des journaux, alerte Zabbix déclenchée, dans `~/livrables`.
 
-**Déroulé** : étapes 1 à 5 (journalisation centralisée) 30 min · étapes 6 à 11 (supervision Zabbix) 35 min · étapes 12 à 15 (analyse de la capture) 40 min · étape 16 (fiche d'incident) 25 min.
+**Déroulé** : étapes 1 à 5 (journalisation centralisée) 30 min · étapes 6 à 11 (supervision Zabbix) 45 min.
 
 > **Instantané conseillé.** Avant de commencer, prenez un instantané de pfSense depuis le portail (par exemple `avant-tp7`).
 
@@ -174,7 +174,7 @@ Ouvrez Firefox sur `http://127.0.0.1:8080`, connectez-vous avec `Admin` / `zabbi
 
 **Pourquoi.** SNMP permet d'interroger un équipement (interfaces, trafic, charge). Les versions 1 et 2c s'authentifient par une simple « communauté » qui circule en clair, souvent `public`. Seule la version 3, au niveau *authPriv*, authentifie l'interrogateur et chiffre les échanges. Le service SNMP intégré de pfSense ne parle que v1/v2c : il faut le paquet **NET-SNMP**.
 
-1. *Services → SNMP* : vérifiez que *Enable* est **décoché** (le service intégré occuperait le port 161).
+1. *Services → SNMP* (le service intégré, sans « NET-SNMP » dans le nom) : *Enable* doit être **décoché** ; s'il est coché, décochez-le et cliquez sur *Save*. Ce service, `bsnmpd`, ne parle que v1/v2c et occuperait le port 161 : l'agent NET-SNMP ne pourrait pas démarrer.
 2. *System → Package Manager → Available Packages* : installez **NET-SNMP** (une minute environ).
 3. *Services → SNMP (NET-SNMP)*. Le paquet a deux parties : **snmpd**, l'agent qui répond aux interrogations (c'est lui qu'on configure), et **snmptrapd**, qui reçoit des alertes SNMP (*traps*) d'autres équipements (inutile ici, à laisser désactivé). Si la page affiche *SNMP Trap Daemon Configuration*, vous êtes dans la seconde : cliquez sur l'onglet *[SNMP Daemon]*. Dans la partie snmpd :
    - onglet *General* : cochez *Enable snmpd* ; dans *Interface Binding*, une seule ligne : *Transport Type* `UDP`, *IP Address/Hostname* `10.1.10.1`, *Port* `161` ; *Save* ;
@@ -272,7 +272,7 @@ Après deux à trois minutes, l'icône `ZBX` de `srv-int` est verte, et *Latest 
 
 | Champ | Valeur |
 |---|---|
-| *Name* | `Échecs de mot de passe SSH` |
+| *Name* | `Échecs d'authentification SSH` |
 | *Type* | `Zabbix agent (active)` |
 | *Key* | `log[/var/log/auth.log,"sshd:auth.*authentication failure"]` |
 | *Type of information* | `Log` |
@@ -313,84 +313,30 @@ for i in 1 2 3 4 5 6; do sshpass -p 'mauvais' ssh -o PubkeyAuthentication=no -o 
 - `-o NumberOfPasswordPrompts=1` : un seul essai par connexion, donc une ligne `authentication failure` par tour.
 - `formation@10.1.20.10 true` : le compte visé, et une commande sans effet qui ne serait exécutée qu'en cas de succès.
 
-Six messages `Permission denied` s'affichent. Dans Zabbix, *Monitoring → Problems* : au bout d'une minute environ, `Force brute SSH possible sur srv-int` apparaît. Capturez l'écran.
+Six messages `Permission denied` s'affichent : c'est normal. Vérifiez ensuite dans Zabbix :
 
-## Étape 12 — Préparer l'analyse de la capture
+- *Monitoring → Latest data*, filtre sur `srv-int` : l'élément `Échecs d'authentification SSH` affiche des lignes `pam_unix(sshd:auth): authentication failure …` dans les 30 secondes ;
+- *Monitoring → Problems* : au bout d'une minute environ, `Force brute SSH possible sur srv-int` apparaît. Il disparaît de lui-même deux minutes après le dernier échec.
 
-**Pourquoi.** La capture `~/TP/tp7-incident.pcap` a été prise par la sonde de la DMZ (port miroir de son serveur web) d'une PME dont l'architecture ressemble à la vôtre, la nuit d'un incident. À l'époque, son serveur web était publié sur Internet par un NAT 1:1 (adresse publique 203.0.113.12, **tous les ports**). Votre travail : reconstituer ce qui s'est passé, dans l'ordre, preuves à l'appui. On commence par régler l'affichage de l'heure en UTC, la référence commune de toute analyse.
+Capturez l'écran du problème.
 
-```bash
-wireshark ~/TP/tp7-incident.pcap &
-```
+> **Si *Latest data* reste vide** : dans *Data collection → Hosts*, l'icône **ZBX** de `srv-int` doit être verte (sinon : règle S4, ou *Host name* différent de `srv-int`) ; dans la liste des éléments, une icône rouge signale un élément *Not supported*, avec la raison au survol (souvent : *Type of information* laissé sur `Numeric`). Sur `srv-int`, `sudo journalctl -u ssh --since "-10 min"` montre si les tentatives sont bien arrivées.
 
-- `wireshark … &` : ouvre la capture, en arrière-plan.
-
-Dans Wireshark : *View → Time Display Format → UTC Date and Time of Day*.
-
-## Étape 13 — Vue d'ensemble
-
-**Pourquoi.** Avant de lire un seul paquet, on cherche la forme générale : quels protocoles, qui parle avec qui, et en quelles quantités. Les anomalies sautent souvent aux yeux à ce niveau.
-
-- *Statistics → Protocol Hierarchy* : la part de chaque protocole. Notez ceux qu'on n'attend pas sur un serveur web (DNS en grande quantité, protocoles en clair).
-- *Statistics → Conversations*, onglet *IPv4* : triez par *Packets* puis par *Bytes*. Notez les adresses externes qui échangent le plus avec le serveur, et dans quel sens (colonnes *A → B* et *B → A*).
-- *Statistics → Conversations*, onglet *TCP* : une même adresse qui contacte des centaines de ports différents ; ou au contraire des dizaines de petites connexions identiques vers le même port.
-
-## Étape 14 — Reconstituer la chronologie
-
-**Pourquoi.** Une intrusion suit presque toujours le même enchaînement : reconnaissance, accès initial, exécution, installation d'un canal de commande, exfiltration. On cherche chaque étape avec un filtre d'affichage adapté, et on note l'heure du premier paquet de chacune.
-
-Saisissez ces filtres un par un dans la barre de filtre :
-
-| Filtre | Ce qu'il montre |
-|---|---|
-| `tcp.flags.syn == 1 && tcp.flags.ack == 0` | Les demandes d'ouverture de connexion TCP. Des centaines depuis une même source, vers des ports différents, en quelques secondes : un balayage. |
-| `tcp.flags.syn == 1 && tcp.flags.ack == 1` | Les réponses positives du serveur : les ports réellement ouverts. |
-| `http.request` | Toutes les requêtes HTTP. Ajoutez la colonne *User-Agent* (clic droit sur le champ dans le détail du paquet, *Apply as Column*) : un outil d'attaque se présente souvent sous son nom. |
-| `http.response.code == 200` | Les requêtes qui ont **abouti**. Après une série de `404`, un `200` sur un chemin sensible est un tournant. Clic droit sur le paquet, *Follow → HTTP Stream*, pour lire l'échange complet. |
-| `http.request.method == "POST"` | Les envois de données : formulaires de connexion, commandes, fichiers. |
-| `ftp \|\| telnet \|\| http.authorization` | Les protocoles qui transportent des identifiants en clair. |
-| `ip.src == <adresse du serveur> && tcp.flags.syn == 1 && tcp.flags.ack == 0` | Les connexions **ouvertes par le serveur** vers l'extérieur. Un serveur web répond ; il n'a en général aucune raison d'initier des connexions. |
-| `dns.qry.name.len > 50` | Les requêtes DNS anormalement longues : des données encodées dans les noms, signe d'un tunnel DNS. Regardez aussi **à qui** elles sont envoyées. |
-
-Pour les connexions sortantes répétées, *Statistics → Conversations* et *Statistics → I/O Graphs* (filtre sur l'adresse de destination) : une connexion à intervalle régulier est un battement (*beacon*) de canal de commande. Pour les fichiers transférés : *File → Export Objects → HTTP*.
-
-## Étape 15 — Relier aux tactiques ATT&CK
-
-**Pourquoi.** MITRE ATT&CK donne un vocabulaire commun aux analystes : nommer chaque étape par sa tactique et sa technique permet de comparer l'incident à d'autres, de chercher les mêmes techniques ailleurs dans le système d'information, et de choisir les contre-mesures.
-
-Pour chaque fait de votre chronologie, indiquez la tactique (*Reconnaissance*, *Initial Access*, *Execution*, *Command and Control*, *Exfiltration*…) et, si vous la trouvez, la technique (`T1046`, `T1190`…) sur `attack.mitre.org`.
-
-## Étape 16 — Rédiger la fiche d'incident
-
-**Pourquoi.** La fiche d'incident sert à décider (confiner, notifier) et à apprendre. Elle doit distinguer les **faits** (observés dans la capture) des **hypothèses**, et proposer des actions réalistes au vu de l'architecture.
-
-```bash
-cd ~/livrables
-curl -fsSLO https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/tp7/modeles/fiche-incident.md
-mousepad fiche-incident.md &
-```
-
-**Ligne par ligne.**
-
-- `curl -fsSLO <adresse>` : télécharge le modèle depuis le dépôt et garde son nom.
-- `mousepad fiche-incident.md &` : l'ouvre dans l'éditeur, en arrière-plan.
-
-Complétez toutes les sections : identification, détection, périmètre, chronologie horodatée en UTC, techniques ATT&CK, indicateurs de compromission, confinement (quelles règles de pare-feu, sur quelle interface), éradication, rétablissement, causes racines, obligations de notification.
+> **Pour aller plus loin (hors du temps du TP).** La capture `~/TP/tp7-incident.pcap` a été prise dans la DMZ d'une PME la nuit d'une intrusion. Avec Wireshark (*Statistics → Conversations*, filtres `http.request`, `http.response.code == 200`, `dns.qry.name.len > 50`), reconstituez la chronologie de l'attaque et rédigez une fiche d'incident à partir du modèle `tp7/modeles/fiche-incident.md` du dépôt. La solution est dans le corrigé.
 
 > **Défi ★.** Chiffrez le transport des journaux. Sur `srv-int`, renommez `/etc/rsyslog.d/20-tls.conf.exemple` en `20-tls.conf` et redémarrez rsyslog : il écoute aussi en TLS sur le port 6514. Configurez `web` pour émettre en TLS vers ce port (paquet `rsyslog-gnutls`, pilote `gtls`, AC du laboratoire), ajustez la règle D5, et vérifiez dans Wireshark que les messages ne sont plus lisibles.
 
 **Livrable** (dans `~/livrables`) :
 
 - la capture d'écran de l'étape 5 (un refus du pare-feu et un événement de `web` sur le collecteur) ;
-- la capture d'écran de l'étape 11 (alerte Zabbix en *Problem*) ;
-- `fiche-incident.md` complétée.
+- la capture d'écran de l'étape 11 (alerte Zabbix en *Problem*).
 
 ## Questions de validation
 
 1. Pourquoi centraliser les journaux hors des machines qui les produisent ?
 2. Pourquoi faut-il SNMPv3 en *authPriv*, et pas v2c ?
-3. Quel filtre Wireshark met en évidence un balayage TCP SYN ?
-4. Dans la capture, quel élément vous fait conclure à un canal de commande (C2) plutôt qu'à du trafic légitime ?
+3. Pourquoi l'élément qui lit le journal d'authentification doit-il être de type *actif* ?
+4. Pourquoi un filtre sur `Failed password` serait-il resté muet dans ce laboratoire, et comment l'auriez-vous découvert ?
 
 ---
 

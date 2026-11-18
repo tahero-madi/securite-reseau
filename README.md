@@ -30,7 +30,7 @@ Le [manuel du stagiaire](manuel/manuel-du-stagiaire.pdf) (PDF, 140 pages) repren
 
 Chaque TP a son corrigé dans un sous-dossier `corrige/` : `tp3/corrige/` pour le TP3, par exemple. Il reprend les résultats attendus, les configurations de référence et les réponses aux questions de validation.
 
-Cherchez d'abord par vous-même : le corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP. Pour le TP7, ne l'ouvrez qu'après avoir mené l'enquête.
+Cherchez d'abord par vous-même : le corrigé sert à vous débloquer, ou à vérifier votre travail à la fin du TP.
 
 ## Programme des TP
 
@@ -46,7 +46,7 @@ Cherchez d'abord par vous-même : le corrigé sert à vous débloquer, ou à vé
 | Jour 3, 09:50 | [TP5 — IDS/IPS avec Suricata sur pfSense](tp5/README.md) | 1 h |
 | Jour 3, 13:40 | [TP6 — Interconnexion hybride : VPN IPsec](tp6/README.md) | 1 h 45, pause incluse |
 | **Jour 4 · Surveiller, réagir, auditer** | | |
-| Jour 4, 09:40 | [TP7 — Supervision, journalisation et analyse d'incident](tp7/README.md) | 2 h 20, pause incluse |
+| Jour 4, 09:40 | [TP7 — Supervision et journalisation](tp7/README.md) | 1 h 15 |
 | Jour 4, 13:35 | [TP8 — Audit de sécurité réseau et rapport](tp8/README.md) | 1 h 45, pause incluse |
 
 En cas de problème : [En cas de blocage](en-cas-de-blocage.md).
