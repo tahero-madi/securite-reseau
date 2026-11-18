@@ -25,11 +25,13 @@ Contenu attendu :
 |---|---|
 | Alias `N_LAB` | `10.1.0.0/16`, `10.10.0.20/32` |
 | Pass List `lab_home` | Cases auto-générées toutes décochées, alias `N_LAB` |
-| Instance WAN | *Home Net* = `lab_home`, *External Net* = `default`, *Pass List* = `lab_home` |
+| Instance WAN | *Home Net* = `lab_home`, *External Net* = `default` ; *Pass List* = `lab_home` à l'étape 9 (le champ n'apparaît qu'avec *Block Offenders* coché) |
 
 C'est l'occasion de montrer qu'une variable mal définie rend un IDS aveugle **sans aucun message d'erreur**.
 
 ## Étape 3 — Instance WAN
+
+Piège vu en séance : `lab_home` saisi dans *Advanced Configuration Pass-Through* (faute de trouver le champ *Pass List*, masqué tant que *Block Offenders* n'est pas coché). Le texte est recopié à la fin de `suricata.yaml`, qui devient invalide : l'instance ne démarre pas et `alerts.log` n'est jamais créé. Diagnostic : `suricata -T -i vtnet0 -c /usr/local/etc/suricata/suricata_<uuid>_vtnet0/suricata.yaml` → `Failed to parse configuration file at line …`. Correction : vider le champ, *Save*, démarrer.
 
 Catégories `emerging-scan` et `emerging-web_server` ; état vert dans *Interfaces* ; `suricata.log` se termine par `Engine started`. Si le démarrage échoue : mémoire insuffisante ou règle invalide (le journal donne le fichier et la ligne).
 

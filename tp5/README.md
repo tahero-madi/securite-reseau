@@ -67,7 +67,7 @@ Par défaut, pfSense met dans `HOME_NET` tous les réseaux directement connecté
 - *Auto-Generated IP Addresses* décochées : sinon pfSense rajoute de lui-même le WAN `10.10.0.0/24`, et `ext` redevient « interne ».
 - *Assigned Aliases* = `N_LAB` : la liste contient exactement vos deux plages.
 
-Cette liste servira deux fois à l'étape suivante : comme **Home Net** (ce que Suricata protège) et comme **Pass List** (les adresses qu'il ne bloquera jamais en mode IPS, pour ne pas couper vos propres machines).
+Cette liste servira deux fois : à l'étape suivante comme **Home Net** (ce que Suricata protège), puis à l'étape 9 comme **Pass List** (les adresses qu'il ne bloquera jamais en mode IPS, pour ne pas couper vos propres machines).
 
 ## Étape 3 — Créer l'instance sur le WAN, en détection seule, et la démarrer
 
@@ -84,7 +84,6 @@ Cette liste servira deux fois à l'étape suivante : comme **Home Net** (ce que 
 | *Alert and Block Settings* | *Block Offenders* | **décoché** |
 | *Networks Suricata Should Inspect and Protect* | *Home Net* | `lab_home` |
 | | *External Net* | `default` |
-| | *Pass List* | `lab_home` |
 
 *Save*. Puis onglet *WAN Categories* : cochez `emerging-scan.rules` et `emerging-web_server.rules`, *Save*.
 
@@ -97,13 +96,16 @@ Revenez à l'onglet *Interfaces* et cliquez sur l'icône de démarrage de la lig
 - *Block Offenders* décoché : mode IDS, aucune action de blocage.
 - *Home Net* = `lab_home` : `$HOME_NET` vaut `10.1.0.0/16` et `10.10.0.20`.
 - *External Net* = `default` : `$EXTERNAL_NET` vaut « tout sauf `HOME_NET` », donc `ext` et `cloud-gw` sont extérieurs.
-- *Pass List* = `lab_home` : ces adresses ne seront jamais bloquées.
 - `emerging-scan` : outils et techniques de balayage (nmap, masscan, Nikto).
 - `emerging-web_server` : attaques contre les serveurs web (injections, chemins sensibles).
 
+Le champ *Pass List* n'apparaît pas encore : pfSense ne l'affiche qu'une fois *Block Offenders* coché (étape 9).
+
+> **Ne rien saisir dans *Advanced Configuration Pass-Through*.** Ce champ, en bas de la page, est recopié tel quel dans le fichier de configuration de Suricata. Un mot comme `lab_home` ou une règle collée là rend le fichier illisible : l'instance refuse de démarrer, sans alerte ni message clair dans l'interface. La liste se choisit dans les menus déroulants *Home Net* et, plus tard, *Pass List*.
+
 > **Si l'état reste rouge** : onglet *Logs View*, interface WAN, fichier `suricata.log`. Les dernières lignes donnent la cause, en général une règle invalide (fichier et ligne indiqués) ou un manque de mémoire.
 
-**Point de contrôle.** Avant de passer à la suite, vérifiez (ou faites vérifier par le formateur) que *Home Net* et *Pass List* valent bien `lab_home`. Une erreur ici ne se voit qu'à l'étape 6, par l'absence d'alertes.
+**Point de contrôle.** Avant de passer à la suite, vérifiez (ou faites vérifier par le formateur) que *Home Net* vaut bien `lab_home`, que *Advanced Configuration Pass-Through* est vide et que l'état de l'instance est vert. Une erreur ici ne se voit qu'à l'étape 6, par l'absence d'alertes.
 
 ## Étape 4 — Publier temporairement le port 80
 
@@ -251,6 +253,7 @@ Dans ce laboratoire, on utilise **Legacy**, avec un garde-fou : ne bloquer que s
 | *Kill States* | coché |
 | *Block On DROP Only* | coché |
 | *Which IP to Block* | `SRC` |
+| *Pass List* (section *Networks…*, apparue en cochant *Block Offenders*) | `lab_home` |
 
 *Save*.
 
@@ -263,6 +266,7 @@ Puis onglet *WAN Rules*, catégorie `custom.rules` : sur la règle 9000001, remp
 - *Kill States* : coupe aussi les connexions déjà établies par l'adresse bloquée.
 - *Block On DROP Only* : seules les règles dont l'action est `drop` entraînent un blocage ; les autres continuent d'alerter seulement.
 - *Which IP to Block* `SRC` : on bloque la source du paquet, l'attaquant.
+- *Pass List* = `lab_home` : vos réseaux internes et l'adresse WAN de pfSense ne seront jamais bloqués.
 - `drop` sur 9000001 : quiconque demande `/.git/` sera bloqué.
 
 Testez depuis **la console de `ext` dans le portail**, pas depuis la session SSH : celle-ci passe par pfSense et sera coupée dès que `ext` sera bloqué.
