@@ -94,6 +94,8 @@ Les CIS Benchmarks sont les guides de durcissement du Center for Internet Securi
 | [Télécharger les benchmarks (PDF)](https://learn.cisecurity.org/benchmarks) | Formulaire d'accès aux PDF gratuits |
 | [CIS Benchmark Ubuntu Linux](https://www.cisecurity.org/benchmark/ubuntu_linux) | `srv-int`, `web` et `cloud-gw` (Ubuntu Server 24.04 LTS) |
 | [CIS Benchmark Debian Linux](https://www.cisecurity.org/benchmark/debian_linux) | Base de la Kali |
+| [CIS-CAT Lite](https://learn.cisecurity.org/cis-cat-lite) | Outil gratuit du CIS qui mesure la conformité d'une machine à un benchmark et produit un rapport HTML avec un score. Application Java, fournie avec son environnement d'exécution (JRE) ; la version Lite ne couvre qu'une partie des benchmarks |
+| [CIS-CAT Pro Assessor](https://www.cisecurity.org/cybersecurity-tools/cis-cat-pro) | Version complète, tous les benchmarks, réservée aux membres de CIS SecureSuite ([documentation](https://ciscat-assessor.docs.cisecurity.org/en/latest/About/)) |
 | [Ansible Lockdown](https://github.com/ansible-lockdown) | Les rôles Ansible qui appliquent les CIS Benchmarks (et les STIG du DoD américain) |
 | [UBUNTU24-CIS](https://github.com/ansible-lockdown/UBUNTU24-CIS) | Rôle de durcissement CIS pour Ubuntu 24.04 : celui des serveurs du laboratoire |
 | [UBUNTU24-CIS-Audit](https://github.com/ansible-lockdown/UBUNTU24-CIS-Audit) | Audit de conformité CIS (Goss), sans rien modifier : à lancer avant et après le durcissement |
