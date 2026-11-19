@@ -1,6 +1,8 @@
-# Référentiels de l'ANSSI cités dans le cours
+# Référentiels cités dans le cours
 
 Les guides et référentiels de l'ANSSI présentés pendant la formation, classés par module. Ils sont gratuits et publiés sous Licence ouverte (Etalab 2.0). Chaque lien ouvre la page officielle du guide, qui donne accès au PDF à jour : téléchargez toujours la dernière version depuis ces pages, les guides sont révisés régulièrement.
+
+En fin de page : les CIS Benchmarks et les rôles Ansible Lockdown qui les appliquent.
 
 La plupart des guides sont rassemblés sur [MesServicesCyber](https://messervices.cyber.gouv.fr/catalogue#guides), le portail de l'ANSSI qui remplace l'ancienne rubrique « Publications » de cyber.gouv.fr. Plusieurs existent aussi en anglais.
 
@@ -81,6 +83,23 @@ Si vous ne deviez en lire que trois :
 | Document | Utilité dans le cours |
 |---|---|
 | [Recommandations de configuration d'un système GNU/Linux](https://messervices.cyber.gouv.fr/guides/recommandations-de-securite-relatives-un-systeme-gnulinux) | Durcissement des serveurs Linux, en complément de Lynis et des CIS Benchmarks |
+
+## Hors ANSSI — CIS Benchmarks et Ansible Lockdown
+
+Les CIS Benchmarks sont les guides de durcissement du Center for Internet Security, publiés pour chaque système, logiciel et équipement réseau. Ils sont gratuits en PDF, après inscription. Chaque recommandation y a un niveau : le niveau 1 se met en place sans gêner l'exploitation, le niveau 2 vise les environnements plus exposés. Ansible Lockdown applique ces benchmarks automatiquement, avec des rôles Ansible open source.
+
+| Ressource | Utilité dans le cours |
+|---|---|
+| [Liste des CIS Benchmarks](https://www.cisecurity.org/cis-benchmarks) | Tous les benchmarks : systèmes, navigateurs, bases de données, cloud, équipements réseau |
+| [Télécharger les benchmarks (PDF)](https://learn.cisecurity.org/benchmarks) | Formulaire d'accès aux PDF gratuits |
+| [CIS Benchmark Ubuntu Linux](https://www.cisecurity.org/benchmark/ubuntu_linux) | `srv-int`, `web` et `cloud-gw` (Ubuntu Server 24.04 LTS) |
+| [CIS Benchmark Debian Linux](https://www.cisecurity.org/benchmark/debian_linux) | Base de la Kali |
+| [Ansible Lockdown](https://github.com/ansible-lockdown) | Les rôles Ansible qui appliquent les CIS Benchmarks (et les STIG du DoD américain) |
+| [UBUNTU24-CIS](https://github.com/ansible-lockdown/UBUNTU24-CIS) | Rôle de durcissement CIS pour Ubuntu 24.04 : celui des serveurs du laboratoire |
+| [UBUNTU24-CIS-Audit](https://github.com/ansible-lockdown/UBUNTU24-CIS-Audit) | Audit de conformité CIS (Goss), sans rien modifier : à lancer avant et après le durcissement |
+| [DEBIAN12-CIS](https://github.com/ansible-lockdown/DEBIAN12-CIS) | Rôle de durcissement CIS pour Debian 12 |
+
+> **Prudence.** Un rôle Ansible Lockdown modifie des centaines de paramètres : SSH, pare-feu local, comptes, journalisation. Lancez d'abord l'audit seul, puis appliquez le rôle sur une copie (instantané), en n'activant que les sections voulues : appliqué tel quel sur `srv-int`, il peut couper l'accès SSH ou casser LDAP, RADIUS ou Zabbix.
 
 ---
 

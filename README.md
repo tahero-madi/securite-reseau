@@ -32,7 +32,7 @@ Les diapositives des quatre jours, avec les notes de présentation : [securisati
 
 ## Référentiels de l'ANSSI
 
-Les guides de l'ANSSI cités dans le cours, classés par module, avec le lien vers leur page officielle : [Référentiels](referentiels/README.md).
+Les guides de l'ANSSI cités dans le cours, classés par module, ainsi que les CIS Benchmarks et l'outil Ansible Lockdown, avec le lien vers leur page officielle : [Référentiels](referentiels/README.md).
 
 ## Corrigés
 
@@ -68,7 +68,7 @@ En cas de problème : [En cas de blocage](en-cas-de-blocage.md).
 | `tpN/modeles/` | Les modèles des livrables (cartographie, matrice des risques, rapport de vulnérabilités, matrice de flux, fiche d'incident, rapport d'audit) |
 | `manuel/` | Le manuel du stagiaire (PDF) |
 | `support/` | Le support de cours (PowerPoint) |
-| `referentiels/` | Les guides et référentiels de l'ANSSI cités dans le cours, avec leurs liens |
+| `referentiels/` | Les guides de l'ANSSI, les CIS Benchmarks et Ansible Lockdown, avec leurs liens |
 | `img/topologie.png` | La topologie du laboratoire |
 | `fichiers/` | Les fichiers remis dans `~/TP` : captures `tp1-arp-demo.pcap`, `tp1-ftp-clear.pcap` et `tp7-incident.pcap`, mandat `mandat-audit-TP8.pdf`, et le script qui génère les captures |
 | `hexceos/` | La préparation des environnements (formateur) : réseau, installation des logiciels de chaque VM, vérification |
