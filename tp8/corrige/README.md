@@ -47,29 +47,13 @@ Les six premiers sont ceux qu'on attend dans le top 6 ; les suivants sont des r�
 - Le risque dit ce qui peut arriver, et à qui.
 - La recommandation est précise et vérifiable.
 - La synthèse parle d'impact métier, sans jargon : par exemple, « un identifiant interne et une application de démonstration vulnérable sont accessibles depuis Internet : un attaquant peut prendre la main sur le serveur web et, de là, viser le reste du réseau ».
-- Pénaliser les listes sans priorisation, ou les constats sans preuve.
+- Une liste sans priorisation, ou un constat sans preuve, ne répond pas à l'attente.
 
 ## Questions
 
 1. Le constat est le fait observé et prouvé ; le risque est la conséquence possible (vraisemblance × impact) ; la recommandation est l'action corrective concrète.
 2. L'équipement appartient à l'hébergeur, hors du périmètre du client : le tester sans accord serait une intrusion dans un système tiers. La correction lui revient (isolation réelle des réseaux), à exiger contractuellement ; le client peut seulement compenser (filtrage local).
 3. Les règles peuvent être correctes et la segmentation contournable par un autre chemin (`.254`), ou une règle temporaire oubliée : seul le test montre l'écart entre le schéma et la réalité.
-
----
-
-## Barème indicatif d'évaluation des livrables de TP
-
-| Livrable | Critères | Points |
-|---|---|---|
-| TP1 cartographie + risques | Exhaustivité, écarts identifiés, cotation justifiée | /10 |
-| TP2 rapport de vulnérabilités | Priorisation CVSS/EPSS/KEV, remédiation vérifiée | /10 |
-| TP3 matrice + règles | Refus par défaut, tests de flux concluants | /10 |
-| TP4 RADIUS/LDAP | Chaîne fonctionnelle, durcissement, LDAPS | /10 |
-| TP5 Suricata | Règles maison, blocage IPS | /10 |
-| TP6 IPsec (démonstration) | — | — |
-| TP7 supervision et journalisation (démonstration) | — | — |
-| TP8 rapport d'audit sur dossier | Constats prouvés et cotés, plan d'action, synthèse | /20 |
-| QCM final | 30 questions | /30 |
 
 ---
 
