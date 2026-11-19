@@ -22,6 +22,10 @@ ls ~/securite-reseau
 
 Si le formateur modifie un fichier pendant la formation, `cd ~/securite-reseau && git pull` récupère la nouvelle version.
 
+## QCM final
+
+À la fin du jour 4 : [répondre au QCM final](https://docs.google.com/forms/d/e/1FAIpQLSd31XnZUourYbZhB_2GM1n7ddPg3IRQT2JMkevMTajOF7G9hA/viewform). 30 questions à choix unique sur les huit modules ; indiquez vos nom et prénom au début.
+
 ## Manuel du stagiaire
 
 Le [manuel du stagiaire](manuel/manuel-du-stagiaire.pdf) (PDF, 140 pages) reprend en détail les notions des huit modules, avec les liens vers les TP, une auto-évaluation corrigée par module, un glossaire et les références. Relisez-le après chaque journée, et gardez-le comme aide-mémoire.
@@ -56,6 +60,7 @@ Cherchez d'abord par vous-même : le corrigé sert à vous débloquer, ou à vé
 | Jour 4, 09:00 | [TP6 — Interconnexion hybride : VPN IPsec](tp6/README.md) : démonstration du formateur | 30 min |
 | Jour 4, 10:30 | [TP7 — Supervision et journalisation](tp7/README.md) : démonstration du formateur | 40 min |
 | Jour 4, 13:00 | [TP8 — Audit de sécurité réseau sur dossier](tp8/README.md) | 1 h |
+| Jour 4, fin de journée | [QCM final](https://docs.google.com/forms/d/e/1FAIpQLSd31XnZUourYbZhB_2GM1n7ddPg3IRQT2JMkevMTajOF7G9hA/viewform) (Google Forms) | 30 questions |
 
 En cas de problème : [En cas de blocage](en-cas-de-blocage.md).
 
