@@ -152,7 +152,20 @@ sudo grep -h -e 'inconnu' -e 'TP7' /var/log/remote/web.log | tail -n 5
 - `| tail -n 3` : seulement les trois dernières.
 - `sudo grep -h -e 'inconnu' -e 'TP7' /var/log/remote/web.log` : les lignes de `web` contenant `inconnu` (`Invalid user inconnu from 10.1.10.10`) ou le message de test de l'étape 3.
 
-Vous verrez sans doute aussi des refus de `10.1.30.10` vers une adresse d'Internet, port 443 : c'est `web` qui tente de sortir (mises à jour automatiques, par exemple), et le filtrage sortant de la DMZ l'en empêche. C'est le comportement voulu, et une bonne question pour un analyste : quel programme, sur `web`, essaie de sortir ?
+Le résultat attendu est un refus (`block`) de `10.1.10.10` vers `10.1.30.10`, port `21` : c'est le test de l'étape précédente. Le filtre `',10.1.10.10,10.1.30.10,'` ne garde que ce couple d'adresses, donc aucune ligne vers le port 443 n'y apparaît.
+
+Pour voir les tentatives de sortie de `web` vers Internet en HTTPS, changez de filtre :
+
+```bash
+sudo grep -h 'filterlog' /var/log/remote/*.log | grep 'block' | grep -E ',10\.1\.30\.10,[0-9.]+,[0-9]+,443,' | tail -n 3
+```
+
+**Ligne par ligne.**
+
+- `grep 'block'` : seulement les refus.
+- `grep -E ',10\.1\.30\.10,[0-9.]+,[0-9]+,443,'` : source `web`, n'importe quelle destination, n'importe quel port source, port de destination 443.
+
+Ces lignes n'existent que si un programme de `web` a tenté de sortir (mises à jour automatiques, par exemple) : le filtrage sortant de la DMZ l'en empêche, c'est le comportement voulu. Si la commande ne renvoie rien, provoquez une tentative depuis `web` (`curl -m 5 https://1.1.1.1`), puis relancez-la. Bonne question pour un analyste : quel programme, sur `web`, essaie de sortir ?
 
 Capturez l'écran : un refus du pare-feu et un événement de `web`, horodatés, au même endroit. C'est votre preuve de centralisation.
 
