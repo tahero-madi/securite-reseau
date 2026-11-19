@@ -26,6 +26,10 @@ Si le formateur modifie un fichier pendant la formation, `cd ~/securite-reseau &
 
 Le [manuel du stagiaire](manuel/manuel-du-stagiaire.pdf) (PDF, 140 pages) reprend en détail les notions des huit modules, avec les liens vers les TP, une auto-évaluation corrigée par module, un glossaire et les références. Relisez-le après chaque journée, et gardez-le comme aide-mémoire.
 
+## Référentiels de l'ANSSI
+
+Les guides de l'ANSSI cités dans le cours, classés par module, avec le lien vers leur page officielle : [Référentiels](referentiels/README.md).
+
 ## Corrigés
 
 Chaque TP a son corrigé dans un sous-dossier `corrige/` : `tp3/corrige/` pour le TP3, par exemple. Il reprend les résultats attendus, les configurations de référence et les réponses aux questions de validation.
@@ -59,6 +63,7 @@ En cas de problème : [En cas de blocage](en-cas-de-blocage.md).
 | `tpN/corrige/` | Le corrigé du TP |
 | `tpN/modeles/` | Les modèles des livrables (cartographie, matrice des risques, rapport de vulnérabilités, matrice de flux, fiche d'incident, rapport d'audit) |
 | `manuel/` | Le manuel du stagiaire (PDF) |
+| `referentiels/` | Les guides et référentiels de l'ANSSI cités dans le cours, avec leurs liens |
 | `img/topologie.png` | La topologie du laboratoire |
 | `fichiers/` | Les fichiers remis dans `~/TP` : captures `tp1-arp-demo.pcap`, `tp1-ftp-clear.pcap` et `tp7-incident.pcap`, mandat `mandat-audit-TP8.pdf`, et le script qui génère les captures |
 | `hexceos/` | La préparation des environnements (formateur) : réseau, installation des logiciels de chaque VM, vérification |
