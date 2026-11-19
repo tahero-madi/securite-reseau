@@ -72,6 +72,7 @@ En cas de problème : [En cas de blocage](en-cas-de-blocage.md).
 | `referentiels/` | Les guides de l'ANSSI, les CIS Benchmarks et Ansible Lockdown, avec leurs liens |
 | `img/topologie.png` | La topologie du laboratoire |
 | `fichiers/` | Les fichiers remis dans `~/TP` : captures `tp1-arp-demo.pcap`, `tp1-ftp-clear.pcap` et `tp7-incident.pcap`, mandat `mandat-audit-TP8.pdf`, et le script qui génère les captures |
+| `maison/` | Refaire le laboratoire chez soi (KVM, 4 VM) et le script `maison.sh` |
 | `hexceos/` | La préparation des environnements (formateur) : réseau, installation des logiciels de chaque VM, vérification |
 
 ## Le laboratoire
@@ -94,6 +95,10 @@ curl -fsSL https://raw.githubusercontent.com/tahero-madi/securite-reseau/main/he
 ```
 
 > **Attention :** les mots de passe de `hexceos/lab.conf` sont des valeurs de laboratoire, publiques puisque ce dépôt l'est. Les comptes des VM et de pfSense sont ceux fournis par la plateforme.
+
+## Refaire le laboratoire chez soi
+
+Sur un PC sous Ubuntu, avec quatre machines virtuelles (pfSense, poste Kali + srv-int, web, cloud-gw + ext) : [Refaire le laboratoire chez soi](maison/README.md).
 
 ## Versions utilisées
 
